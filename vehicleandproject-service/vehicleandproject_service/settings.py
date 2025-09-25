@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -74,8 +76,12 @@ WSGI_APPLICATION = 'vehicleandproject_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
+        'NAME': config('DB_NAME', default=BASE_DIR / 'db.sqlite3'),
+        'USER': config('DB_USER', default=''),
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST': config('DB_HOST', default=''),
+        'PORT': config('DB_PORT', default=''),
     }
 }
 

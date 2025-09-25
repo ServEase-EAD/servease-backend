@@ -1,0 +1,93 @@
+# =============================================================================
+# SERVEASE MICROSERVICES - GITIGNORE
+# =============================================================================
+
+# Environment files - contain sensitive information
+.env
+.env.*
+!.env.example
+
+# Local development overrides
+.env.local
+
+# Database
+*.sqlite3
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Static files (will be generated)
+staticfiles/
+media/
+static/
+
+# Backup files
+*.backup
+*.bak
+
+# Temporary files
+tmp/
+temp/
+
+# Django specific
+db.sqlite3
+db.sqlite3-journal
+
+# If you are using Django's collectstatic
+staticfiles/
+
+# Coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# Docker volumes data
+postgres-data/
+redis-data/
+
+# Local testing
+test-results/
