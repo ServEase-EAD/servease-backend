@@ -112,3 +112,35 @@ class CustomerViewSet(viewsets.ModelViewSet):
         }
 
         return Response(stats)
+
+    @action(detail=False, methods=['get'])
+    def by_user_id(self, request):
+        """
+        GET /api/v1/customers/by_user_id/?user_id=12345
+        Get customer by user_id
+        """
+        user_id = request.query_params.get('user_id')
+
+        if not user_id:
+            return Response(
+                {'error': 'user_id parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return Response(
+                {'error': 'user_id must be a valid integer'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            customer = Customer.objects.get(user_id=user_id)
+            serializer = CustomerSerializer(customer)
+            return Response(serializer.data)
+        except Customer.DoesNotExist:
+            return Response(
+                {'error': f'Customer with user_id {user_id} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
