@@ -84,14 +84,14 @@ WSGI_APPLICATION = 'customer_service.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Use PostgreSQL as default
+# Use PostgreSQL in Docker by default
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('CUSTOMER_DB_NAME', default='servease_customers'),
         'USER': config('DB_USER', default='postgres'),
         'PASSWORD': config('DB_PASSWORD', default='postgres_password'),
-        'HOST': config('DB_HOST', default='localhost'),
+        'HOST': config('DB_HOST', default='postgres'),  # Docker service name
         'PORT': config('DB_PORT', default='5432'),
     }
 }
