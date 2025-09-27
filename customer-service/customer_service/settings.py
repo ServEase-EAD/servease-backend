@@ -46,8 +46,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
 
-    # Local apps
-    'customers.apps.CustomersConfig',
+    # Main app
+    'customer_service',
 ]
 
 MIDDLEWARE = [
@@ -209,12 +209,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': 'customer_service.log',
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -222,17 +216,17 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],
         'level': config('LOG_LEVEL', default='INFO'),
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': config('DJANGO_LOG_LEVEL', default='INFO'),
             'propagate': False,
         },
-        'customers': {
-            'handlers': ['console', 'file'],
+        'customer_service': {
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -248,7 +242,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
-FILE_UPLOAD_TEMP_DIR = BASE_DIR / 'temp'
 
 # =============================================================================
 # TIME ZONE AND LOCALIZATION

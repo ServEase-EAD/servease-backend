@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Prefetch
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -51,7 +51,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
         return CustomerSerializer
 
     def get_queryset(self):
-        """Basic queryset without prefetch for removed models"""
+        """Basic queryset"""
         return Customer.objects.all()
 
     def create(self, request, *args, **kwargs):

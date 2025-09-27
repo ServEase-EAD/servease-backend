@@ -1,6 +1,6 @@
 """
 Customer Service Models
-Handles customer profiles, vehicles, preferences, and related data
+Handles customer profiles and related data for the ServEase platform
 """
 
 from django.db import models
@@ -11,7 +11,7 @@ import uuid
 
 class Customer(models.Model):
     """
-    Comprehensive customer profile model with personal information
+    Customer profile model with personal information
     and relationship to authentication service
     """
 
