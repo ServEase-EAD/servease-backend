@@ -39,7 +39,7 @@ class CustomUser(AbstractUser):
 
 #### Customer Registration
 ```http
-POST /api/auth/register/
+POST /api/v1/auth/register/
 Content-Type: application/json
 
 {
@@ -54,7 +54,7 @@ Content-Type: application/json
 
 #### User Login (All Roles)
 ```http
-POST /api/auth/login/
+POST /api/v1/auth/login/
 Content-Type: application/json
 
 {
@@ -83,7 +83,7 @@ Content-Type: application/json
 
 #### User Logout
 ```http
-POST /api/auth/logout/
+POST /api/v1/auth/logout/
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
@@ -96,13 +96,13 @@ Content-Type: application/json
 
 #### Get Current User Profile
 ```http
-GET /api/auth/profile/
+GET /api/v1/auth/profile/
 Authorization: Bearer <access_token>
 ```
 
 #### Update Current User Profile
 ```http
-PUT /api/auth/profile/update/
+PUT /api/v1/auth/profile/update/
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
@@ -117,7 +117,7 @@ Content-Type: application/json
 #### Create Employee Account
 **Only admins can create employee accounts**
 ```http
-POST /api/auth/admin/employees/create/
+POST /api/v1/auth/admin/employees/create/
 Authorization: Bearer <admin_access_token>
 Content-Type: application/json
 
@@ -150,25 +150,25 @@ Content-Type: application/json
 
 #### List All Employees
 ```http
-GET /api/auth/admin/employees/
+GET /api/v1/auth/admin/employees/
 Authorization: Bearer <admin_access_token>
 ```
 
 #### List All Users (with filtering)
 ```http
-GET /api/auth/admin/users/?role=employee
+GET /api/v1/auth/admin/users/?role=employee
 Authorization: Bearer <admin_access_token>
 ```
 
 #### Get User Details
 ```http
-GET /api/auth/admin/users/3/
+GET /api/v1/auth/admin/users/3/
 Authorization: Bearer <admin_access_token>
 ```
 
 #### Update User Details
 ```http
-PUT /api/auth/admin/users/3/
+PUT /api/v1/auth/admin/users/3/
 Authorization: Bearer <admin_access_token>
 Content-Type: application/json
 
@@ -180,19 +180,19 @@ Content-Type: application/json
 
 #### Delete User
 ```http
-DELETE /api/auth/admin/users/3/
+DELETE /api/v1/auth/admin/users/3/
 Authorization: Bearer <admin_access_token>
 ```
 
 #### Toggle User Active Status
 ```http
-POST /api/auth/admin/users/3/toggle-status/
+POST /api/v1/auth/admin/users/3/toggle-status/
 Authorization: Bearer <admin_access_token>
 ```
 
 #### Admin Dashboard Statistics
 ```http
-GET /api/auth/admin/dashboard/stats/
+GET /api/v1/auth/admin/dashboard/stats/
 Authorization: Bearer <admin_access_token>
 ```
 
@@ -296,7 +296,7 @@ DATABASES = {
 import requests
 
 # Admin login
-admin_login = requests.post("http://localhost:8001/api/auth/login/", json={
+admin_login = requests.post("http://localhost:8001/api/v1/auth/login/", json={
     "email": "admin@servease.com", 
     "password": "AdminPass123!"
 })
@@ -313,7 +313,7 @@ employee_data = {
 }
 
 response = requests.post(
-    "http://localhost:8001/api/auth/admin/employees/create/",
+    "http://localhost:8001/api/v1/auth/admin/employees/create/",
     json=employee_data,
     headers={"Authorization": f"Bearer {admin_token}"}
 )
@@ -335,7 +335,7 @@ customer_data = {
 }
 
 response = requests.post(
-    "http://localhost:8001/api/auth/register/",
+    "http://localhost:8001/api/v1/auth/register/",
     json=customer_data
 )
 
