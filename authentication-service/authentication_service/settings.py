@@ -62,7 +62,7 @@ ROOT_URLCONF = 'authentication_service.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -82,12 +82,12 @@ WSGI_APPLICATION = 'authentication_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
-        'NAME': config('AUTH_DB_NAME'),
-        'USER': config('DB_USER', default=''),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default=''),
-        'PORT': config('DB_PORT', default=''),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'servease_authentication',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres_password',
+        'HOST': 'localhost',  # For local development
+        'PORT': '5432',
     }
 }
 
