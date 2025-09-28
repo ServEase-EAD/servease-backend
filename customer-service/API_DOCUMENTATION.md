@@ -2,7 +2,9 @@
 
 ## Available Endpoints
 
-### Base URL: `http://127.0.0.1:8002/api/v1/`
+### Base URL: `http://127.0.0.1:8002/api/v1/customers/`
+
+**Note**: This service follows the same URL pattern as the authentication-service, with explicit path mappings instead of router-generated URLs.
 
 ## Customer Endpoints
 
