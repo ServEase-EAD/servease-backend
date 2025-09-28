@@ -83,11 +83,11 @@ WSGI_APPLICATION = 'authentication_service.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'servease_authentication',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres_password',
-        'HOST': 'localhost',  # For local development
-        'PORT': '5432',
+        'NAME': config('AUTH_DB_NAME', default='servease_authentication'),
+        'USER': config('DB_USER', default='postgres'),
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST': config('DB_HOST', default=''),
+        'PORT': config('DB_PORT', default='5432'),
     }
 }
 

@@ -90,8 +90,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('CUSTOMER_DB_NAME', default='servease_customers'),
         'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default='postgres_password'),
-        'HOST': config('DB_HOST', default='postgres'),  # Docker service name
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST': config('DB_HOST', default=''),
         'PORT': config('DB_PORT', default='5432'),
     }
 }
