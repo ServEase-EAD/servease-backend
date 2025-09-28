@@ -1,6 +1,7 @@
 # URL Structure Comparison
 
 ## Authentication-Service Pattern (Target)
+
 ```python
 # authentication_service/urls.py
 urlpatterns = [
@@ -18,6 +19,7 @@ urlpatterns = [
 ```
 
 ## Customer-Service Pattern (Updated to Match)
+
 ```python
 # customer_service/urls.py
 urlpatterns = [
@@ -39,14 +41,17 @@ urlpatterns = [
 ## Key Changes Made
 
 ### 1. Project URL Structure
+
 - **Before**: `path('api/v1/', include('customers.urls'))`
 - **After**: `path('api/v1/customers/', include('customers.urls'))`
 
 ### 2. App URL Structure
+
 - **Before**: Router-generated URLs (`router.urls`)
 - **After**: Explicit path mappings using ViewSet.as_view()
 
 ### 3. Benefits of New Structure
+
 - ✅ **Consistency**: Matches authentication-service pattern
 - ✅ **Explicit Control**: Clear URL-to-view mapping
 - ✅ **Better Organization**: Each endpoint has a named URL pattern
@@ -54,7 +59,9 @@ urlpatterns = [
 - ✅ **Custom Actions**: Easy to add custom endpoints
 
 ### 4. URL Endpoints Remain the Same
+
 All endpoints work exactly the same as before:
+
 - `GET /api/v1/customers/` - List customers
 - `POST /api/v1/customers/` - Create customer
 - `GET /api/v1/customers/{uuid}/` - Get customer

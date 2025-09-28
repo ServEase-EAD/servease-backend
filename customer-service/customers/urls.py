@@ -34,7 +34,7 @@ urlpatterns = [
     # Main customer endpoints
     path("", customer_viewset, name="customer-list"),
     path("<uuid:pk>/", customer_detail, name="customer-detail"),
-    
+
     # Custom action endpoints
     path("<uuid:pk>/dashboard/", customer_dashboard, name="customer-dashboard"),
     path("<uuid:pk>/verify/", customer_verify, name="customer-verify"),
