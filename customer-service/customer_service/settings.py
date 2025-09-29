@@ -98,7 +98,10 @@ DATABASES = {
         'PORT': config('DB_PORT', default='5432'),
         'OPTIONS': {
             'connect_timeout': 60,
-            'sslmode': 'require',
+            'sslmode': 'prefer',
+            'sslcert': None,
+            'sslkey': None,
+            'sslrootcert': None,
         }
     }
 }
