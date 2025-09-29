@@ -1,5 +1,8 @@
 from django.urls import path
-from .views import CustomerViewSet
+from .views import (
+    CustomerViewSet, current_customer_profile,
+    update_customer_profile, create_customer_profile
+)
 
 # Get the viewset instance for explicit URL mapping
 customer_viewset = CustomerViewSet.as_view({
@@ -35,6 +38,13 @@ customer_delete_by_user_id = CustomerViewSet.as_view({
 })
 
 urlpatterns = [
+    # Customer profile endpoints (JWT authenticated)
+    path("profile/", current_customer_profile, name="current-customer-profile"),
+    path("profile/update/", update_customer_profile,
+         name="update-customer-profile"),
+    path("profile/create/", create_customer_profile,
+         name="create-customer-profile"),
+
     # Main customer endpoints
     path("", customer_viewset, name="customer-list"),
     path("<uuid:pk>/", customer_detail, name="customer-detail"),
