@@ -1,12 +1,12 @@
 # 🔧 TEMPORARY DATABASE OVERRIDE FOR TESTING
 # ============================================
-# 
+#
 # Since AWS RDS is not accessible, this file provides a temporary
 # database configuration to test your authentication requirement.
-# 
+#
 # This does NOT modify your .env file - it's a temporary docker override.
 
-version: '3.8'
+version: "3.8"
 
 services:
   # Temporary local PostgreSQL for testing
@@ -32,7 +32,7 @@ services:
       - DB_PASSWORD=test123
       - DB_PORT=5432
 
-  # Override authentication service to use local DB  
+  # Override authentication service to use local DB
   authentication-service:
     environment:
       - DB_HOST=test-db

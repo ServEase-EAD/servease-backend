@@ -1,6 +1,7 @@
 # 🚀 AUTHENTICATION TESTING - WORKAROUND FOR AWS RDS ISSUES
 
 ## 🔧 Current Issue
+
 - Customer service and authentication service are crashing due to AWS RDS connectivity
 - Services can't start properly, causing 502 Bad Gateway errors
 - This is an infrastructure issue, NOT an authentication implementation issue
@@ -40,6 +41,7 @@ print(f"Test Token: {token}")
 ### 🔹 **Step 2: Test Token Structure**
 
 Use this token in Postman:
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJlbWFpbCI6InRlc3QuY3VzdG9tZXJAZXhhbXBsZS5jb20iLCJ1c2VyX3JvbGUiOiJjdXN0b21lciIsImZpcnN0X25hbWUiOiJUZXN0IiwibGFzdF9uYW1lIjoiQ3VzdG9tZXIiLCJleHAiOjE3Mjc2Mzk3ODEsImlhdCI6MTcyNzYzNjE4MSwidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.MLr2zWOTGcNdvdxEMNxOOzNJdKoU-Cd3TtXvJU0mwJ4
 ```
@@ -63,11 +65,13 @@ DATABASES = {
 ```
 
 2. Restart customer service:
+
 ```bash
 docker-compose restart customer-service
 ```
 
 3. Run migrations:
+
 ```bash
 docker-compose exec customer-service python manage.py migrate
 ```
@@ -98,6 +102,7 @@ Since nginx is working but services are down, test directly:
 Try these in Postman:
 
 1. **Authentication Service Direct:**
+
    ```
    POST http://localhost:8001/api/v1/auth/register/
    ```
@@ -110,10 +115,12 @@ Try these in Postman:
 ## 🎯 **EXPECTED RESULTS**
 
 ### ✅ **If Services Work:**
+
 - Registration returns JWT tokens ➜ **Authentication requirement satisfied**
 - Protected endpoints require Bearer tokens ➜ **Token validation working**
 
 ### ⚠️ **If Services Still Down:**
+
 - Your authentication **code is still correct**
 - Issue is AWS RDS connectivity, not authentication logic
 - Use the JWT token creation script to verify token structure

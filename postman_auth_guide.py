@@ -8,15 +8,16 @@ to test the JWT authentication flow.
 
 import json
 
+
 def print_postman_collection():
     """Print Postman-ready request examples"""
-    
+
     print("="*70)
     print(" SERVEASE JWT AUTHENTICATION - POSTMAN TEST COLLECTION")
     print("="*70)
-    
+
     print("\n📋 Copy these examples into Postman for testing:")
-    
+
     # Registration
     print("\n" + "─"*50)
     print("1️⃣  USER REGISTRATION")
@@ -29,14 +30,14 @@ def print_postman_collection():
     registration_body = {
         "email": "john.doe@servease.com",
         "password1": "SecurePass123!",
-        "password2": "SecurePass123!", 
+        "password2": "SecurePass123!",
         "first_name": "John",
         "last_name": "Doe",
         "phone_number": "1234567890"
     }
     print(json.dumps(registration_body, indent=2))
     print("\nExpected Response: 201 Created with user data and tokens")
-    
+
     # Login
     print("\n" + "─"*50)
     print("2️⃣  USER LOGIN")
@@ -53,7 +54,7 @@ def print_postman_collection():
     print(json.dumps(login_body, indent=2))
     print("\nExpected Response: 200 OK with access and refresh tokens")
     print("💡 Save the 'access' token from response for next requests!")
-    
+
     # Protected endpoint without token
     print("\n" + "─"*50)
     print("3️⃣  PROTECTED ENDPOINT (Without Token)")
@@ -62,8 +63,9 @@ def print_postman_collection():
     print("URL: http://localhost:8002/api/v1/customers/")
     print("Headers: (none)")
     print("\nExpected Response: 403 Forbidden")
-    print("Response Body: {\"detail\": \"Authentication credentials were not provided.\"}")
-    
+    print(
+        "Response Body: {\"detail\": \"Authentication credentials were not provided.\"}")
+
     # Protected endpoint with token
     print("\n" + "─"*50)
     print("4️⃣  PROTECTED ENDPOINT (With Token)")
@@ -75,7 +77,7 @@ def print_postman_collection():
     print("  Content-Type: application/json")
     print("\nExpected Response: 200 OK with customer data")
     print("💡 Replace YOUR_ACCESS_TOKEN_HERE with the token from login response")
-    
+
     # Token validation
     print("\n" + "─"*50)
     print("5️⃣  TOKEN VALIDATION")
@@ -91,7 +93,7 @@ def print_postman_collection():
     print(json.dumps(validation_body, indent=2))
     print("\nExpected Response: 200 OK if token is valid")
     print("💡 Replace YOUR_ACCESS_TOKEN_HERE with actual token")
-    
+
     # User profile
     print("\n" + "─"*50)
     print("6️⃣  USER PROFILE")
@@ -102,7 +104,7 @@ def print_postman_collection():
     print("  Authorization: Bearer YOUR_ACCESS_TOKEN_HERE")
     print("  Content-Type: application/json")
     print("\nExpected Response: 200 OK with user profile data")
-    
+
     # Token refresh
     print("\n" + "─"*50)
     print("7️⃣  TOKEN REFRESH")
@@ -118,7 +120,7 @@ def print_postman_collection():
     print(json.dumps(refresh_body, indent=2))
     print("\nExpected Response: 200 OK with new access token")
     print("💡 Replace YOUR_REFRESH_TOKEN_HERE with the refresh token from login")
-    
+
     # Logout
     print("\n" + "─"*50)
     print("8️⃣  USER LOGOUT")
@@ -134,7 +136,7 @@ def print_postman_collection():
     }
     print(json.dumps(logout_body, indent=2))
     print("\nExpected Response: 200 OK - tokens are blacklisted")
-    
+
     print("\n" + "="*70)
     print(" TESTING WORKFLOW")
     print("="*70)
@@ -148,7 +150,7 @@ def print_postman_collection():
     print("7. Get user profile (Request #6)")
     print("8. Refresh the token (Request #7)")
     print("9. Logout (Request #8)")
-    
+
     print("\n💡 Tips for Postman:")
     print("• Create a new Collection called 'ServEase Auth'")
     print("• Add each request as a separate item in the collection")
@@ -157,9 +159,10 @@ def print_postman_collection():
     print("  - {{refresh_token}} for refresh tokens")
     print("• Set up Tests in Postman to automatically extract tokens:")
     print("  pm.environment.set('access_token', pm.response.json().tokens.access);")
-    
+
     print("\n🎯 Authentication Flow Confirmed:")
     print("✅ Customer must be logged in → Server generates token → Token sent with requests → Server validates")
+
 
 if __name__ == "__main__":
     print_postman_collection()

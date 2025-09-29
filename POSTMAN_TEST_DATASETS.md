@@ -1,10 +1,13 @@
 # ServEase JWT Authentication - Postman Test Datasets
+
 # ===================================================
 
 ## 1. USER REGISTRATION
+
 ### Endpoint: POST http://localhost:8001/api/v1/auth/register/
 
 ### Test Case 1: Valid Customer Registration
+
 ```json
 {
   "email": "customer1@servease.com",
@@ -17,6 +20,7 @@
 ```
 
 ### Test Case 2: Another Valid Customer
+
 ```json
 {
   "email": "alice.smith@servease.com",
@@ -29,6 +33,7 @@
 ```
 
 ### Test Case 3: Password Mismatch (Should Fail)
+
 ```json
 {
   "email": "test.fail@servease.com",
@@ -41,6 +46,7 @@
 ```
 
 ### Test Case 4: Weak Password (Should Fail)
+
 ```json
 {
   "email": "weak.password@servease.com",
@@ -53,6 +59,7 @@
 ```
 
 ### Test Case 5: Invalid Email Format (Should Fail)
+
 ```json
 {
   "email": "invalid-email-format",
@@ -67,9 +74,11 @@
 ---
 
 ## 2. USER LOGIN
+
 ### Endpoint: POST http://localhost:8001/api/v1/auth/login/
 
 ### Test Case 1: Valid Login (Use after Registration)
+
 ```json
 {
   "email": "customer1@servease.com",
@@ -78,6 +87,7 @@
 ```
 
 ### Test Case 2: Valid Login - Second User
+
 ```json
 {
   "email": "alice.smith@servease.com",
@@ -86,6 +96,7 @@
 ```
 
 ### Test Case 3: Invalid Password (Should Fail)
+
 ```json
 {
   "email": "customer1@servease.com",
@@ -94,6 +105,7 @@
 ```
 
 ### Test Case 4: Non-existent User (Should Fail)
+
 ```json
 {
   "email": "nonexistent@servease.com",
@@ -102,6 +114,7 @@
 ```
 
 ### Test Case 5: Empty Credentials (Should Fail)
+
 ```json
 {
   "email": "",
@@ -112,29 +125,40 @@
 ---
 
 ## 3. PROTECTED ENDPOINT WITHOUT TOKEN (Should Fail)
+
 ### Endpoint: GET http://localhost:8002/api/v1/customers/
+
 ### Headers: (No Authorization header)
+
 ### Body: (Empty)
+
 ### Expected Response: 403 Forbidden
 
 ---
 
 ## 4. PROTECTED ENDPOINT WITH TOKEN
+
 ### Endpoint: GET http://localhost:8002/api/v1/customers/
+
 ### Headers:
+
 ```
 Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
 Content-Type: application/json
 ```
+
 ### Body: (Empty)
+
 ### Expected Response: 200 OK
 
 ---
 
 ## 5. TOKEN VALIDATION
+
 ### Endpoint: POST http://localhost:8001/api/v1/auth/validate-token/
 
 ### Test Case 1: Valid Token
+
 ```json
 {
   "token": "YOUR_ACCESS_TOKEN_HERE"
@@ -142,6 +166,7 @@ Content-Type: application/json
 ```
 
 ### Test Case 2: Invalid Token (Should Fail)
+
 ```json
 {
   "token": "invalid.token.here"
@@ -149,6 +174,7 @@ Content-Type: application/json
 ```
 
 ### Test Case 3: Expired Token (Should Fail)
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
@@ -156,6 +182,7 @@ Content-Type: application/json
 ```
 
 ### Test Case 4: Empty Token (Should Fail)
+
 ```json
 {
   "token": ""
@@ -165,20 +192,26 @@ Content-Type: application/json
 ---
 
 ## 6. USER PROFILE
+
 ### Endpoint: GET http://localhost:8001/api/v1/auth/profile/
+
 ### Headers:
+
 ```
 Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
 Content-Type: application/json
 ```
+
 ### Body: (Empty)
 
 ---
 
 ## 7. TOKEN REFRESH
+
 ### Endpoint: POST http://localhost:8001/api/v1/auth/token/refresh/
 
 ### Test Case 1: Valid Refresh Token
+
 ```json
 {
   "refresh": "YOUR_REFRESH_TOKEN_HERE"
@@ -186,6 +219,7 @@ Content-Type: application/json
 ```
 
 ### Test Case 2: Invalid Refresh Token (Should Fail)
+
 ```json
 {
   "refresh": "invalid.refresh.token.here"
@@ -193,6 +227,7 @@ Content-Type: application/json
 ```
 
 ### Test Case 3: Empty Refresh Token (Should Fail)
+
 ```json
 {
   "refresh": ""
@@ -202,14 +237,18 @@ Content-Type: application/json
 ---
 
 ## 8. USER LOGOUT
+
 ### Endpoint: POST http://localhost:8001/api/v1/auth/logout/
+
 ### Headers:
+
 ```
 Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
 Content-Type: application/json
 ```
 
 ### Test Case 1: Valid Logout
+
 ```json
 {
   "refresh": "YOUR_REFRESH_TOKEN_HERE"
@@ -221,14 +260,19 @@ Content-Type: application/json
 ## ADDITIONAL TEST SCENARIOS
 
 ### 9. CUSTOMER SERVICE ENDPOINTS
+
 ### Endpoint: GET http://localhost:8002/api/v1/customers/
+
 ### Various scenarios to test with valid tokens
 
 ---
 
 ## 10. ADMIN ENDPOINTS (If available)
+
 ### Endpoint: GET http://localhost:8001/api/v1/auth/admin/dashboard/stats/
+
 ### Headers:
+
 ```
 Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
 Content-Type: application/json
@@ -237,6 +281,7 @@ Content-Type: application/json
 ---
 
 # POSTMAN ENVIRONMENT VARIABLES
+
 # =============================
 
 Set up these environment variables in Postman:
@@ -247,61 +292,66 @@ Set up these environment variables in Postman:
 - `refresh_token`: (will be set automatically after login)
 
 # POSTMAN TESTS SCRIPTS
+
 # ======================
 
 ## For Login Request - Add this to "Tests" tab:
+
 ```javascript
 pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
+  pm.response.to.have.status(200);
 });
 
 pm.test("Response has tokens", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.tokens).to.exist;
-    pm.expect(jsonData.tokens.access).to.exist;
-    pm.expect(jsonData.tokens.refresh).to.exist;
-    
-    // Save tokens to environment
-    pm.environment.set("access_token", jsonData.tokens.access);
-    pm.environment.set("refresh_token", jsonData.tokens.refresh);
+  var jsonData = pm.response.json();
+  pm.expect(jsonData.tokens).to.exist;
+  pm.expect(jsonData.tokens.access).to.exist;
+  pm.expect(jsonData.tokens.refresh).to.exist;
+
+  // Save tokens to environment
+  pm.environment.set("access_token", jsonData.tokens.access);
+  pm.environment.set("refresh_token", jsonData.tokens.refresh);
 });
 
 pm.test("Response has user data", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.email).to.exist;
-    pm.expect(jsonData.first_name).to.exist;
-    pm.expect(jsonData.last_name).to.exist;
+  var jsonData = pm.response.json();
+  pm.expect(jsonData.email).to.exist;
+  pm.expect(jsonData.first_name).to.exist;
+  pm.expect(jsonData.last_name).to.exist;
 });
 ```
 
 ## For Protected Endpoints - Add this to "Tests" tab:
+
 ```javascript
 pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
+  pm.response.to.have.status(200);
 });
 
 pm.test("Authentication successful", function () {
-    pm.expect(pm.response.code).to.not.equal(403);
-    pm.expect(pm.response.code).to.not.equal(401);
+  pm.expect(pm.response.code).to.not.equal(403);
+  pm.expect(pm.response.code).to.not.equal(401);
 });
 ```
 
 ## For Token Refresh - Add this to "Tests" tab:
+
 ```javascript
 pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
+  pm.response.to.have.status(200);
 });
 
 pm.test("New access token received", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.access).to.exist;
-    
-    // Update access token
-    pm.environment.set("access_token", jsonData.access);
+  var jsonData = pm.response.json();
+  pm.expect(jsonData.access).to.exist;
+
+  // Update access token
+  pm.environment.set("access_token", jsonData.access);
 });
 ```
 
 # TESTING WORKFLOW
+
 # ================
 
 1. **Setup Environment**: Create environment variables
@@ -316,9 +366,11 @@ pm.test("New access token received", function () {
 10. **Logout**: Test logout functionality
 
 # EXPECTED RESPONSES
+
 # ==================
 
 ## Successful Registration (201):
+
 ```json
 {
   "id": 1,
@@ -335,6 +387,7 @@ pm.test("New access token received", function () {
 ```
 
 ## Successful Login (200):
+
 ```json
 {
   "id": 1,
@@ -353,6 +406,7 @@ pm.test("New access token received", function () {
 ```
 
 ## Authentication Error (403):
+
 ```json
 {
   "detail": "Authentication credentials were not provided."
@@ -360,6 +414,7 @@ pm.test("New access token received", function () {
 ```
 
 ## Invalid Credentials (400):
+
 ```json
 {
   "non_field_errors": ["Incorrect Credentials"]
