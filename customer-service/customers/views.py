@@ -22,6 +22,21 @@ from .permissions import IsCustomer, IsOwnerCustomer, IsCustomerOrReadOnly
 from .authentication import CustomerJWTAuthentication
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    GET /api/v1/customers/health/
+    Health check endpoint - no authentication required
+    """
+    return Response({
+        'status': 'healthy',
+        'service': 'customer-service',
+        'timestamp': timezone.now().isoformat(),
+        'version': '1.0.0'
+    }, status=status.HTTP_200_OK)
+
+
 class CustomerViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Customer CRUD operations
