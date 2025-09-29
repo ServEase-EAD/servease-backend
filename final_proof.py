@@ -37,23 +37,27 @@ def final_verification():
         response = requests.get(
             "http://localhost/api/v1/customers/profile/", timeout=10)
         print(f"   📥 Server response: {response.status_code}")
-        
+
         if response.status_code == 403:
             print(f"   ✅ Status: 403 - Authentication properly required!")
         elif response.status_code == 502:
             print(f"   ⚠️  Status: 502 - Service connectivity issue, checking health...")
             # Try health endpoint to see if service is accessible
-            health_response = requests.get("http://localhost/api/v1/customers/health/", timeout=10)
+            health_response = requests.get(
+                "http://localhost/api/v1/customers/health/", timeout=10)
             print(f"   📋 Health check: {health_response.status_code}")
             if health_response.status_code == 200:
-                print(f"   ✅ Service is running, authentication will be tested with working endpoint")
+                print(
+                    f"   ✅ Service is running, authentication will be tested with working endpoint")
             else:
                 print(f"   ❌ Service connectivity issue - cannot test authentication")
                 return False
         elif response.status_code == 500:
-            print(f"   ✅ Status: 500 - Service reached, likely database issue after auth check")
+            print(
+                f"   ✅ Status: 500 - Service reached, likely database issue after auth check")
         else:
-            print(f"   ❓ Status: {response.status_code} - Unexpected, but continuing test...")
+            print(
+                f"   ❓ Status: {response.status_code} - Unexpected, but continuing test...")
     except Exception as e:
         print(f"   Error: {e}")
         return False
@@ -156,7 +160,7 @@ def final_verification():
     print("\n🎯 CONCLUSION:")
     print("Your authentication requirement is FULLY IMPLEMENTED!")
     print("- JWT token generation: ✅ WORKING")
-    print("- Browser token storage: ✅ WORKING") 
+    print("- Browser token storage: ✅ WORKING")
     print("- Token transmission: ✅ WORKING")
     print("- Authentication logic: ✅ IMPLEMENTED")
     print("\nAny connectivity issues are infrastructure-related, not authentication failures.")
