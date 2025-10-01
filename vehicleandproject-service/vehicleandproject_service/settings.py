@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'vehicles',          
+    'projects',
 ]
 
 MIDDLEWARE = [
@@ -76,12 +78,15 @@ WSGI_APPLICATION = 'vehicleandproject_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
-        'NAME': config('DB_NAME', default=BASE_DIR / 'db.sqlite3'),
-        'USER': config('DB_USER', default=''),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('VEHICLE_DB_NAME', default='servease_vehicles_projects'),
+        'USER': config('DB_USER', default='postgres'),
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default=''),
-        'PORT': config('DB_PORT', default=''),
+        'PORT': config('DB_PORT', default='5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        }
     }
 }
 

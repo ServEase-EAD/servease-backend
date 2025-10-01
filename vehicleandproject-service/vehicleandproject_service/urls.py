@@ -15,8 +15,19 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.http import JsonResponse
 
 urlpatterns = [
+    # Admin interface
     path('admin/', admin.site.urls),
+    
+    # API endpoints
+    path('api/v1/vehicles/', include('vehicles.urls')),
+    # path('api/v1/projects/', include('projects.urls')),  # When you create projects app
+    
+    # Health check endpoint
+    path('health/', lambda request: JsonResponse({'status': 'healthy'})),
 ]
+
+

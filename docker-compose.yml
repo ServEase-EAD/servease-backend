@@ -3,33 +3,11 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
   redis_data:
   pgadmin_data:
 
 services:
-  # Database Services
-  postgres:
-    image: postgres:15-alpine
-    env_file:
-      - .env
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_MULTIPLE_DATABASES: ${AUTH_DB_NAME},${CUSTOMER_DB_NAME},${EMPLOYEE_DB_NAME},${VEHICLE_DB_NAME},${APPOINTMENT_DB_NAME},${NOTIFICATION_DB_NAME},${CHATBOT_DB_NAME}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d
-    networks:
-      - servease-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
+  # Cache Service
   redis:
     image: redis:7-alpine
     volumes:
@@ -49,17 +27,14 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     ports:
       - "${PGADMIN_PORT}:80"
     networks:
       - servease-network
-    depends_on:
-      postgres:
-        condition: service_healthy
     restart: unless-stopped
 
   # Microservices
@@ -77,8 +52,6 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - SERVICE_NAME=authentication-service
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -102,8 +75,6 @@ services:
       - SERVICE_NAME=customer-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -129,8 +100,6 @@ services:
       - SERVICE_NAME=employee-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -156,8 +125,6 @@ services:
       - SERVICE_NAME=vehicleandproject-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -185,8 +152,6 @@ services:
       - CUSTOMER_SERVICE_URL=${CUSTOMER_SERVICE_URL}
       - EMPLOYEE_SERVICE_URL=${EMPLOYEE_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -216,8 +181,6 @@ services:
       - SERVICE_NAME=notification-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -243,8 +206,6 @@ services:
       - SERVICE_NAME=chatbot-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
