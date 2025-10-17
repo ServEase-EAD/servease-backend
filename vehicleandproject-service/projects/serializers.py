@@ -81,7 +81,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'customer_id',
             'title',
             'status',
-            'description'
+            'description',
             'expected_completion_date',
             'created_at',
         ]

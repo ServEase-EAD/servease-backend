@@ -24,7 +24,7 @@ urlpatterns = [
     
     # API endpoints
     path('api/v1/vehicles/', include('vehicles.urls')),
-    # path('api/v1/projects/', include('projects.urls')),  # When you create projects app
+    path('api/v1/projects/', include('projects.urls')),  
     
     # Health check endpoint
     path('health/', lambda request: JsonResponse({'status': 'healthy'})),

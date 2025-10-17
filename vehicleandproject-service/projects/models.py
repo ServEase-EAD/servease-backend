@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import RegexValidator
 import uuid
 
+
 class Project(models.Model):
     project_id = models.UUIDField(
         primary_key=True,
@@ -10,7 +11,7 @@ class Project(models.Model):
         help_text="Unique identifier for the project"
     )
 
-    # Link to Vehicle
+    # link to Vehicle by string reference
     vehicle = models.ForeignKey(
         'vehicles.Vehicle',
         on_delete=models.CASCADE,
@@ -21,7 +22,6 @@ class Project(models.Model):
     customer_id = models.UUIDField(
         help_text="Customer ID from customer-service"
     )
-
 
     # Project Information
     title = models.CharField(
@@ -58,7 +58,3 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
-    
-
-
-

@@ -8,6 +8,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Q
 from .models import Project
+from vehicles.models import Vehicle
+
 from .serializers import (
     ProjectSerializer, 
     ProjectCreateSerializer,
@@ -120,17 +122,23 @@ class ProjectViewSet(viewsets.ModelViewSet):
             status=status.HTTP_204_NO_CONTENT
         )
     
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
-    def my_projects(self, request):
-        """Custom action to get projects for the authenticated user's customer_id"""
+    @action(detail=False, methods=['get'])
+    def customer_projects(self, request):
+        """Get projects for the authenticated customer"""
         user = request.user
-        if not hasattr(user, 'customer_id'):
+        if not hasattr(user, 'role') or user.role != 'customer':
             return Response(
-                {'message': 'User does not have a customer_id'},
+                {'error': 'Only customers can access their projects'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        customer_id = getattr(user, 'customer_id', None)
+        if not customer_id:
+            return Response(
+                {'error': 'Customer ID not found'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        customer_id = user.customer_id
         projects = self.get_queryset().filter(customer_id=customer_id)
         page = self.paginate_queryset(projects)
         if page is not None:
