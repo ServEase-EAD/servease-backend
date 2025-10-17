@@ -37,7 +37,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     
     # Filtering and searching
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status', 'vehicle__make', 'vehicle__model', 'customer_id']
+    filterset_fields = ['vehicle__make', 'vehicle__model', 'customer_id']
     search_fields = ['title', 'description', 'vehicle__vin', 'vehicle__plate_number']
     ordering_fields = ['created_at', 'expected_completion_date', 'status']
     ordering = ['-created_at']
