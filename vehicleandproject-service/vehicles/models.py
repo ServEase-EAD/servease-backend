@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.validators import RegexValidator
 import uuid
+from datetime import datetime
+
 
 class Vehicle(models.Model):
     # Primary key - using UUID for better security
@@ -38,6 +40,7 @@ class Vehicle(models.Model):
     )
     
     vin = models.CharField(
+        blank=False,
         max_length=17,
         unique=True,
         validators=[vin_validator],
@@ -51,6 +54,7 @@ class Vehicle(models.Model):
     )
     
     plate_number = models.CharField(
+        blank=False,
         max_length=10,
         unique=True,
         validators=[plate_validator],
@@ -87,5 +91,4 @@ class Vehicle(models.Model):
     @property
     def age(self):
         """Calculate vehicle age"""
-        from datetime import datetime
         return datetime.now().year - self.year

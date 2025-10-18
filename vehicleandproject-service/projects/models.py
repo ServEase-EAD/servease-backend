@@ -20,16 +20,19 @@ class Project(models.Model):
 
     # store only customer ID from the customer service
     customer_id = models.UUIDField(
-        help_text="Customer ID from customer-service"
+        help_text="Customer ID from customer-service",
+        db_index=True  # Index for faster queries
     )
 
     # Project Information
     title = models.CharField(
         max_length=100,
+        blank=False,
         help_text="Title of the project"
     )
 
     description = models.TextField(
+        blank=False,
         help_text="Detailed description of the project"
     )
 
@@ -37,17 +40,18 @@ class Project(models.Model):
         help_text="Expected completion date of the project"
     )
 
+    PROJECT_STATUS_CHOICES = [
+        ('accepted', 'Accepted'),
+        ('cancelled', 'Cancelled'),
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('on_hold', 'On Hold'),
+    ]
+
     status = models.CharField(
         max_length=20,
-        choices=[
-            # Example statuses [Accepted by the business,
-            # rejected by the business, not Started, in progress, completed]
-            ('accepted', 'Accepted'),
-            ('rejected', 'Rejected'),
-            ('not_started', 'Not Started'),
-            ('in_progress', 'In Progress'),
-            ('completed', 'Completed'),
-        ],
+        choices=PROJECT_STATUS_CHOICES,
         default='not_started',
         help_text="Current status of the project"
     )
