@@ -144,3 +144,45 @@ class CustomerViewSet(viewsets.ModelViewSet):
                 {'error': f'Customer with user_id {user_id} not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+    @action(detail=False, methods=['delete'])
+    def delete_by_user_id(self, request):
+        """
+        DELETE /api/v1/customers/delete_by_user_id/?user_id=12345
+        Delete customer by user_id
+        """
+        user_id = request.query_params.get('user_id')
+
+        if not user_id:
+            return Response(
+                {'error': 'user_id parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return Response(
+                {'error': 'user_id must be a valid integer'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            customer = Customer.objects.get(user_id=user_id)
+            customer_id = str(customer.id)
+            customer_name = customer.full_name
+            customer.delete()
+
+            return Response({
+                'message': 'Customer deleted successfully',
+                'deleted_customer': {
+                    'id': customer_id,
+                    'user_id': user_id,
+                    'name': customer_name
+                }
+            }, status=status.HTTP_200_OK)
+        except Customer.DoesNotExist:
+            return Response(
+                {'error': f'Customer with user_id {user_id} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
