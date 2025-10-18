@@ -64,9 +64,30 @@ class VehicleViewSet(viewsets.ModelViewSet):
         
         return queryset
     
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'GET':
+            # Users can view their own vehicles, admin can view any
+            permission_classes = [IsOwnerOrAdmin]
+        elif self.request.method in ['PUT', 'PATCH']:
+            # Users can update their own vehicles, admin can update any
+            permission_classes = [IsOwnerOrAdmin]
+        elif self.request.method == 'DELETE':
+            # Users can delete their own vehicles, admin can delete any
+            permission_classes = [IsOwnerOrAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        
+        return [permission() for permission in permission_classes]
+
+    
     def create(self, request, *args, **kwargs):
         """Create a new vehicle"""
+        permission_classes = (IsOwnerOrAdmin,)
         serializer = self.get_serializer(data=request.data)
+
         if serializer.is_valid():
             vehicle = serializer.save()
             # Return full vehicle data after creation
@@ -88,6 +109,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     
     def update(self, request, *args, **kwargs):
         """Update a vehicle"""
+        permission_classes = (IsAuthenticated,)
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -111,6 +133,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     
     def destroy(self, request, *args, **kwargs):
         """Soft delete a vehicle (mark as inactive)"""
+        permission_classes = (IsAuthenticated,)
         instance = self.get_object()
         instance.is_active = False
         instance.save()
@@ -125,6 +148,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def activate(self, request, vehicle_id=None):
         """Activate a deactivated vehicle"""
+        permission_classes = (IsAuthenticated,)
         vehicle = self.get_object()
         vehicle.is_active = True
         vehicle.save()
@@ -140,6 +164,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def customer_vehicles(self, request):
         """Get vehicles for a specific customer"""
+        permission_classes = (IsAuthenticated,)
         customer_id = request.query_params.get('customer_id')
         if not customer_id:
             return Response(
@@ -161,6 +186,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def search_vehicles(self, request):
         """Advanced search for vehicles"""
+        permission_classes = (IsAuthenticated,)
         query = request.query_params.get('q', '')
         if not query:
             return Response(
