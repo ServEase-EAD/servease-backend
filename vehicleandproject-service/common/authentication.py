@@ -26,6 +26,7 @@ class StatelessJWTAuthentication(JWTAuthentication):
             user = type("UserObject", (), {
                 "id": payload.get("user_id"),
                 "user_role": payload.get("user_role", None),
+                "email": payload.get("email", ""),
                 "is_authenticated": True
             })()
             

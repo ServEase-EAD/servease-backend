@@ -67,6 +67,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
         """Filter queryset based on user permissions"""
         user = self.request.user
         queryset = Vehicle.objects.all()
+        queryset = queryset.filter(is_active=True)
 
         if getattr(user, "user_role", None) == "customer":
             queryset = queryset.filter(customer_id=user.id)
@@ -172,7 +173,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
         user = request.user
         return Response({
             "id": user.id,
-            
+            "email": getattr(user, "email", "No email"),
             "user_role": getattr(user, "user_role", "No role"),
             "is_authenticated": user.is_authenticated,
             
