@@ -108,6 +108,7 @@ class VehicleListSerializer(serializers.ModelSerializer):
         model = Vehicle
         fields = [
             'vehicle_id',
+            'customer_id',
             'display_name',
             'plate_number',
             'color',
