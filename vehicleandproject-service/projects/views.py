@@ -1,8 +1,11 @@
 from django.shortcuts import render
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 # Create your views here.
 =======
+=======
+>>>>>>> Stashed changes
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -298,5 +301,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 'data': serializer.data
             }
         )
+<<<<<<< Updated upstream
+    
+>>>>>>> Stashed changes
+=======
     
 >>>>>>> Stashed changes
