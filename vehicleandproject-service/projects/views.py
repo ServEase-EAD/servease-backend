@@ -1,5 +1,10 @@
 from django.shortcuts import render
 
+# Create your views here.
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -9,6 +14,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Q
 from .models import Project
 from vehicles.models import Vehicle
+from .permissions import IsCustomer, IsEmployee
 
 from .serializers import (
     ProjectSerializer, 
@@ -16,7 +22,6 @@ from .serializers import (
     ProjectUpdateSerializer,
     ProjectListSerializer
 )
-
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """
@@ -52,6 +57,60 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return ProjectListSerializer
         return ProjectSerializer
     
+    def get_permissions(self):
+        """RBAC logic for projects"""
+        if self.action in ['create']:
+            permission_classes = [IsAuthenticated, IsCustomer]
+        elif self.action in ['update', 'partial_update']:
+            permission_classes = [IsAuthenticated, IsCustomer]  # Will add business logic validation
+        elif self.action in ['destroy']:
+            permission_classes = [IsAuthenticated]  # Both customer and employee (business logic will handle)
+        elif self.action in ['list', 'retrieve']:
+            permission_classes = [IsAuthenticated]
+        elif self.action in ['customer_projects', 'by_vehicle']:
+            permission_classes = [IsAuthenticated, IsCustomer]
+        elif self.action in ['change_status']:
+            permission_classes = [IsAuthenticated, IsEmployee]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+    
+    def get_queryset(self):
+        """Filter queryset based on user permissions"""
+        user = self.request.user
+        queryset = Project.objects.all()
+        
+        # Employees can see all projects
+        if getattr(user, "user_role", None) == "employee":
+            return queryset
+        
+        # Customers can only see their own projects
+        elif getattr(user, "user_role", None) == "customer":
+            return queryset.filter(customer_id=user.id)
+        
+        # Default: no access for unauthenticated users
+        return queryset.none()
+
+    def create(self, request, *args, **kwargs):
+        """Create a new project"""
+
+        # Validate that the vehicle belongs to the customer
+        vehicle_id = request.data.get('vehicle')
+        if vehicle_id:
+            try:
+                from vehicles.models import Vehicle
+                vehicle = Vehicle.objects.get(vehicle_id=vehicle_id, customer_id=request.user.id)
+            except Vehicle.DoesNotExist:
+                return Response(
+                    {'error': 'Vehicle not found or you do not have permission to create projects for this vehicle'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+        #########only accessible by customer############
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            # Auto-assign customer_id from authenticated user
+            project = serializer.save(customer_id=request.user.id)
     def get_queryset(self):
         """Filter queryset based on user permissions"""
         queryset = Project.objects.all()
@@ -92,7 +151,26 @@ class ProjectViewSet(viewsets.ModelViewSet):
         )
     
     def update(self, request, *args, **kwargs):
-        """Update an existing project"""
+        """Update project - ongoing cannot be edited, pending can be edited by customer"""
+        
+        instance = self.get_object()
+        
+        # Check if project status allows editing
+        if instance.status == 'in_progress':
+            return Response(
+                {'error': 'Cannot edit project that is currently in progress'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Only allow editing if status is 'not_started' or other editable statuses
+        editable_statuses = ['not_started', 'on_hold', 'accepted']
+        if instance.status not in editable_statuses:
+            return Response(
+                {'error': f'Project with status "{instance.status}" cannot be edited'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        ########ongoing cannot edit and pending can be edit by customer
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -114,6 +192,33 @@ class ProjectViewSet(viewsets.ModelViewSet):
         )
     
     def destroy(self, request, *args, **kwargs):
+        """Delete project - pending can be deleted by customer and employee, ongoing cannot be deleted by anyone"""
+        
+        instance = self.get_object()
+        user = request.user
+        
+        # Check if project status allows deletion
+        if instance.status == 'in_progress':
+            return Response(
+                {'error': 'Cannot delete project that is currently in progress'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Only allow deletion for certain statuses
+        deletable_statuses = ['not_started', 'cancelled', 'on_hold']
+        if instance.status not in deletable_statuses:
+            return Response(
+                {'error': f'Project with status "{instance.status}" cannot be deleted'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Additional check: customers can only delete their own projects
+        if user.user_role == 'customer' and instance.customer_id != user.id:
+            return Response(
+                {'error': 'You can only delete your own projects'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         """Delete a project"""
         instance = self.get_object()
         self.perform_destroy(instance)
@@ -189,6 +294,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         
         serializer = ProjectListSerializer(projects, many=True)
-        return Response(serializer.data)
-    
+        return Response(
+            {
+                'message': f'Projects for vehicle {vehicle_id}',
+                'count': projects.count(),
+                'data': serializer.data
+            }
+        ) return Response(serializer.data)
     
