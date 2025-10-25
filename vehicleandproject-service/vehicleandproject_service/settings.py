@@ -22,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x+$rd8@0=ljt116i(kax8bjw@9r$d)7mrmj7-529e)u$dx^cw^'
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-%0cdw-(4gvq-c!ezk#r^f(p*&ny9uz&+tyg=!w7i_0k-8po*(!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
 
 
 # Application definition
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'vehicles',          
     'projects',
+    
 ]
 
 MIDDLEWARE = [
@@ -90,6 +91,16 @@ DATABASES = {
     }
 }
 
+# Service URLs for inter-service communication
+SERVICE_URLS = {
+    'CUSTOMER_SERVICE': config('CUSTOMER_SERVICE_URL', default='http://localhost:8002'),
+    'EMPLOYEE_SERVICE': config('EMPLOYEE_SERVICE_URL', default='http://localhost:8003'),
+    'VEHICLE_SERVICE': config('VEHICLE_SERVICE_URL', default='http://localhost:8004'),
+    'APPOINTMENT_SERVICE': config('APPOINTMENT_SERVICE_URL', default='http://localhost:8005'),
+    'NOTIFICATION_SERVICE': config('NOTIFICATION_SERVICE_URL', default='http://localhost:8006'),
+    'USER_SERVICE': config('USER_SERVICE_URL', default='http://localhost:8007'),
+    'CHATBOT_SERVICE': config('CHATBOT_SERVICE_URL', default='http://localhost:8008'),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -131,3 +142,25 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'common.authentication.StatelessJWTAuthentication',
+    ),
+}
+
+
+# CORS Configuration
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+SIMPLE_JWT = {
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "VERIFYING_KEY": "",
+    "USER_ID_FIELD": "user_id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+

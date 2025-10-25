@@ -60,13 +60,14 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     
 class ProjectUpdateSerializer(serializers.ModelSerializer):
     """Specialized serializer for updating existing Projects with limited fields"""
-    """Customer can't change status"""
+    
     class Meta:
         model = Project
         fields = [
             'title',
             'description',
             'expected_completion_date',
+            'status',
         ]
 
 class ProjectListSerializer(serializers.ModelSerializer):

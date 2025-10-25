@@ -1,15 +1,14 @@
 from django.shortcuts import render
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 
 # Create your views here.
-=======
-=======
->>>>>>> Stashed changes
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Q
@@ -38,6 +37,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     """
     
     queryset = Project.objects.all()
+    permission_classes = [AllowAny]
     lookup_field = 'project_id'  # Use project_id instead of pk
     
     # Filtering and searching
@@ -111,6 +111,29 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             # Auto-assign customer_id from authenticated user
             project = serializer.save(customer_id=request.user.id)
+    def get_queryset(self):
+        """Filter queryset based on user permissions"""
+        queryset = Project.objects.all()
+        
+        # If user has customer role, only show their projects
+        # This assumes you have user role checking logic
+        user = self.request.user
+        if hasattr(user, 'role') and user.role == 'customer':
+            # Assuming you have a way to get customer_id from user
+            customer_id = getattr(user, 'customer_id', None)
+            if customer_id:
+                queryset = queryset.filter(customer_id=customer_id)
+            else:
+                queryset = queryset.none()  # No customer_id means no access
+        
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        """Create a new project"""
+        serializer = self.get_serializer(data=request.data)
+        if serializer .is_valid():
+            project = serializer.save()
+            # Return full project details after creation
             response_serializer = ProjectSerializer(project)
             return Response(
                 {
@@ -196,6 +219,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        """Delete a project"""
+        instance = self.get_object()
         self.perform_destroy(instance)
         return Response(
             {'message': 'Project deleted successfully'},
@@ -205,54 +230,44 @@ class ProjectViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def customer_projects(self, request):
         """Get projects for the authenticated customer"""
-        
         user = request.user
-        
-        # Verify user is a customer (already checked by permissions, but good practice)
-        if getattr(user, "user_role", None) != "customer":
+        if not hasattr(user, 'role') or user.role != 'customer':
             return Response(
                 {'error': 'Only customers can access their projects'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Get projects for this customer (queryset already filtered by get_queryset)
-        projects = self.get_queryset()
+        customer_id = getattr(user, 'customer_id', None)
+        if not customer_id:
+            return Response(
+                {'error': 'Customer ID not found'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
+        projects = self.get_queryset().filter(customer_id=customer_id)
         page = self.paginate_queryset(projects)
         if page is not None:
             serializer = ProjectListSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         
         serializer = ProjectListSerializer(projects, many=True)
-        return Response(
-            {
-                'message': f'Projects for customer {user.id}',
-                'count': projects.count(),
-                'data': serializer.data
-            }
-        )
+        return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def change_status(self, request, project_id=None):
-        """Change project status - only accessible by employee"""
-        
+        """Custom action to change the status of a project"""
         project = self.get_object()
         new_status = request.data.get('status')
-        
-        # Validate status
         valid_statuses = [choice[0] for choice in Project._meta.get_field('status').choices]
+        
         if new_status not in valid_statuses:
             return Response(
-                {'error': f'Status must be one of: {", ".join(valid_statuses)}'},
+                {'message': f'Status must be one of: {", ".join(valid_statuses)}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Optional: Add business logic for status transitions
-        # For example, prevent changing from 'completed' to 'not_started'
-        
         project.status = new_status
         project.save()
-        
         serializer = ProjectSerializer(project)
         return Response(
             {
@@ -262,9 +277,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         )
     
     @action(detail=False, methods=['get'])
+
     def by_vehicle(self, request):
-        """Get projects for a specific vehicle - accessible for customer for their own vehicle"""
-        
+        """Get projects for a specific vehicle"""
         vehicle_id = request.query_params.get('vehicle_id')
         if not vehicle_id:
             return Response(
@@ -272,22 +287,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        user = request.user
-        
-        # For customers: verify they own the vehicle
-        if getattr(user, "user_role", None) == "customer":
-            try:
-                from vehicles.models import Vehicle
-                vehicle = Vehicle.objects.get(vehicle_id=vehicle_id, customer_id=user.id)
-            except Vehicle.DoesNotExist:
-                return Response(
-                    {'error': 'Vehicle not found or you do not have permission to view projects for this vehicle'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
-        # Get projects for this vehicle (already filtered by get_queryset for customers)
         projects = self.get_queryset().filter(vehicle__vehicle_id=vehicle_id)
-        
         page = self.paginate_queryset(projects)
         if page is not None:
             serializer = ProjectListSerializer(page, many=True)
@@ -300,10 +300,5 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 'count': projects.count(),
                 'data': serializer.data
             }
-        )
-<<<<<<< Updated upstream
+        ) return Response(serializer.data)
     
->>>>>>> Stashed changes
-=======
-    
->>>>>>> Stashed changes
