@@ -62,7 +62,7 @@ class Vehicle(models.Model):
     )
     
     # Ownership tracking (link to customer service)
-    customer_id = models.IntegerField(
+    customer_id = models.UUIDField(
         help_text="Reference to customer who owns this vehicle",
         db_index=True  # Index for faster queries
     )
