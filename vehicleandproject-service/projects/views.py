@@ -1,3 +1,4 @@
+from pickle import GET
 from django.shortcuts import render
 
 # Create your views here.
@@ -28,12 +29,22 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ViewSet for Project CRUD operations
     
     Provides:
-    - GET /api/v1/projects/ - List all projects
+    - GET /api/v1/projects/ - List projects (filtered by user role)
     - POST /api/v1/projects/ - Create new project  
     - GET /api/v1/projects/{id}/ - Get specific project
     - PUT /api/v1/projects/{id}/ - Update project
     - PATCH /api/v1/projects/{id}/ - Partial update
     - DELETE /api/v1/projects/{id}/ - Delete project
+    
+    Access Control:
+    - Employees: Can see all projects, can filter by customer_id query parameter
+    - Customers: Can only see their own projects (auto-filtered by JWT token)
+    
+    Query Parameters (for employees):
+    - customer_id: Filter projects for specific customer
+    - status: Filter by project status
+    - vehicle__make: Filter by vehicle make
+    - vehicle__model: Filter by vehicle model
     """
     
     queryset = Project.objects.all()
@@ -42,7 +53,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     
     # Filtering and searching
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['vehicle__make', 'vehicle__model', 'customer_id']
+    filterset_fields = ['vehicle__make', 'vehicle__model', 'customer_id', 'status']
     search_fields = ['title', 'description', 'vehicle__vin', 'vehicle__plate_number']
     ordering_fields = ['created_at', 'expected_completion_date', 'status']
     ordering = ['-created_at']
@@ -79,17 +90,69 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """Filter queryset based on user permissions"""
         user = self.request.user
         queryset = Project.objects.all()
+        user_role = getattr(user, "user_role", None)
         
-        # Employees can see all projects
-        if getattr(user, "user_role", None) == "employee":
-            return queryset
+        if user_role == "employee":
+            return self._get_employee_queryset(queryset, user)
+        elif user_role == "customer":
+            return self._get_customer_queryset(queryset, user)
+        else:
+            # Default: no access for unauthenticated users
+            return queryset.none()
+    
+    def _get_employee_queryset(self, queryset, user):
+        """Handle queryset filtering for employees"""
+        # Employees can see all projects by default
+        # But can filter by specific customer if customer_id is provided in query params
+        customer_id_filter = self.request.query_params.get('customer_id')
         
-        # Customers can only see their own projects (using customer_id from JWT token)
-        elif getattr(user, "user_role", None) == "customer":
-            return queryset.filter(customer_id=user.id)
+        if customer_id_filter:
+            # Filter projects for specific customer
+            try:
+                queryset = queryset.filter(customer_id=customer_id_filter)
+            except Exception:
+                # If invalid customer_id format, return empty queryset
+                return queryset.none()
         
-        # Default: no access for unauthenticated users
-        return queryset.none()
+        return queryset
+    
+    # Get all projects
+    # GET /api/v1/projects/
+    # Authorization: Bearer <employee-jwt-token>
+
+    # # Filter projects for specific customer
+    # GET /api/v1/projects/?customer_id=bcee5755-2c9f-4c0a-8720-1592b75edf96
+    # Authorization: Bearer <employee-jwt-token>
+
+    # # Filter by status
+    # GET /api/v1/projects/?status=in_progress
+    # Authorization: Bearer <employee-jwt-token>
+
+    # # Filter by customer and status
+    # GET /api/v1/projects/?customer_id=bcee5755-2c9f-4c0a-8720-1592b75edf96&status=not_started
+    # Authorization: Bearer <employee-jwt-token>
+
+    # # Filter by vehicle make
+    # GET /api/v1/projects/?vehicle__make=Toyota
+    # Authorization: Bearer <employee-jwt-token>
+    
+    def _get_customer_queryset(self, queryset, user):
+        """Handle queryset filtering for customers"""
+        # Customers can only see their own projects
+        customer_id = getattr(user, 'id', None)
+        if customer_id:
+            return queryset.filter(customer_id=customer_id)
+        else:
+            # No customer ID means no access
+            return queryset.none()
+        
+    # Get only their own projects (automatically filtered)
+    # GET /api/v1/projects/
+    # Authorization: Bearer <customer-jwt-token>
+
+    # # Customer cannot see other customers' projects
+    # # Even if they try: ?customer_id=other-customer-id
+    # # They will still only see their own projects
 
     def create(self, request, *args, **kwargs):
         """Create a new project with automatic customer_id from JWT token"""
