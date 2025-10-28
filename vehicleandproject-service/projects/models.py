@@ -21,7 +21,7 @@ class Project(models.Model):
     # store only customer ID from the customer service
     customer_id = models.UUIDField(
         help_text="Customer ID from customer-service",
-        db_index=True  # Index for faster queries
+        db_index=True,
     )
 
     # Project Information

@@ -62,9 +62,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if self.action in ['create']:
             permission_classes = [IsAuthenticated, IsCustomer]
         elif self.action in ['update', 'partial_update']:
-            permission_classes = [IsAuthenticated, IsCustomer]  # Will add business logic validation
+            permission_classes = [IsAuthenticated, IsCustomer]
         elif self.action in ['destroy']:
-            permission_classes = [IsAuthenticated]  # Both customer and employee (business logic will handle)
+            permission_classes = [IsAuthenticated]
         elif self.action in ['list', 'retrieve']:
             permission_classes = [IsAuthenticated]
         elif self.action in ['customer_projects', 'by_vehicle']:
@@ -84,7 +84,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if getattr(user, "user_role", None) == "employee":
             return queryset
         
-        # Customers can only see their own projects
+        # Customers can only see their own projects (using customer_id from JWT token)
         elif getattr(user, "user_role", None) == "customer":
             return queryset.filter(customer_id=user.id)
         
@@ -92,47 +92,28 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return queryset.none()
 
     def create(self, request, *args, **kwargs):
-        """Create a new project"""
-
-        # Validate that the vehicle belongs to the customer
-        vehicle_id = request.data.get('vehicle')
-        if vehicle_id:
-            try:
-                from vehicles.models import Vehicle
-                vehicle = Vehicle.objects.get(vehicle_id=vehicle_id, customer_id=request.user.id)
-            except Vehicle.DoesNotExist:
-                return Response(
-                    {'error': 'Vehicle not found or you do not have permission to create projects for this vehicle'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-        #########only accessible by customer############
+        """Create a new project with automatic customer_id from JWT token"""
+        # Get customer_id from JWT token
+        user = request.user
+        if not hasattr(user, 'user_role') or user.user_role != 'customer':
+            return Response(
+                {'error': 'Only customers can create projects'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Extract customer_id from JWT token (user.id contains the user_id from the token)
+        customer_id = getattr(user, 'id', None)
+        if not customer_id:
+            return Response(
+                {'error': 'Customer ID not found in token'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate the request data first
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            # Auto-assign customer_id from authenticated user
-            project = serializer.save(customer_id=request.user.id)
-    def get_queryset(self):
-        """Filter queryset based on user permissions"""
-        queryset = Project.objects.all()
-        
-        # If user has customer role, only show their projects
-        # This assumes you have user role checking logic
-        user = self.request.user
-        if hasattr(user, 'role') and user.role == 'customer':
-            # Assuming you have a way to get customer_id from user
-            customer_id = getattr(user, 'customer_id', None)
-            if customer_id:
-                queryset = queryset.filter(customer_id=customer_id)
-            else:
-                queryset = queryset.none()  # No customer_id means no access
-        
-        return queryset
-
-    def create(self, request, *args, **kwargs):
-        """Create a new project"""
-        serializer = self.get_serializer(data=request.data)
-        if serializer .is_valid():
-            project = serializer.save()
+            # Save the project with customer_id automatically set
+            project = serializer.save(customer_id=customer_id)
             # Return full project details after creation
             response_serializer = ProjectSerializer(project)
             return Response(
@@ -300,5 +281,5 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 'count': projects.count(),
                 'data': serializer.data
             }
-        ) return Response(serializer.data)
+        )
     
