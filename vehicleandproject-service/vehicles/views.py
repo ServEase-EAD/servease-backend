@@ -4,6 +4,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Q
@@ -64,30 +65,58 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        """Filter queryset based on user permissions"""
+        """Filter queryset based on user role.
+        - Employees (and admins) can see all active vehicles.
+        - Customers can only see their own active vehicles.
+        - Others receive 403.
+        """
         user = self.request.user
-        queryset = Vehicle.objects.all()
-        queryset = queryset.filter(is_active=True)
+        base_qs = Vehicle.objects.filter(is_active=True)
 
-        if getattr(user, "user_role", None) == "customer":
-            queryset = queryset.filter(customer_id=user.id)
-        return queryset
+        role = getattr(user, "user_role", None)
+        if role in ("employee", "admin"):
+            return base_qs
+        if role == "customer":
+            # Limit to vehicles owned by the authenticated customer
+            return base_qs.filter(customer_id=getattr(user, "id", None))
+
+        raise PermissionDenied('Not allowed to access vehicles')
 
     def create(self, request, *args, **kwargs):
         """Create a new vehicle — auto-assign customer_id from logged-in user"""
+
+        user = request.user
+        if not hasattr(user, 'user_role') or user.user_role != 'customer':
+            return Response(
+                {'error': 'Only customers can create vehicles'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+         # Extract customer_id from JWT token (user.id contains the user_id from the token)
+        customer_id = getattr(user, 'id', None)
+        if not customer_id:
+            return Response(
+                {'error': 'Customer ID not found in token'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        customer_id = request.user.id
-        vehicle = serializer.save(customer_id=customer_id)
-
-        response_serializer = VehicleSerializer(vehicle)
+        if serializer.is_valid():
+            # Save the vehicle with customer_id automatically set
+            vehicle = serializer.save(customer_id=customer_id)
+            # Return full vehicle details after creation
+            response_serializer = VehicleSerializer(vehicle)
+            return Response(
+                {
+                    'message': 'Vehicle created successfully',
+                    'data': response_serializer.data
+                },
+                status=status.HTTP_201_CREATED
+            )
         return Response(
             {
-                'message': 'Vehicle created successfully',
-                'data': response_serializer.data
+                'message': 'Error creating vehicle',
+                'errors': serializer.errors
             },
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_400_BAD_REQUEST
         )
 
     def update(self, request, *args, **kwargs):
@@ -116,16 +145,23 @@ class VehicleViewSet(viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
-        """Soft delete a vehicle (mark as inactive)"""
-        permission_classes = (IsAuthenticated,)
+        """Delete a vehicle by customer"""
+        """Vehicles with projects cannot be deleted"""
         instance = self.get_object()
-        instance.is_active = False
-        instance.save()
+        user = request.user
 
+        # Additional check: customers can only delete their own vehicles and employees cannot delete vehicles
+        if user.user_role in ['customer', 'employee'] and instance.customer_id != user.id:
+            return Response(
+                {'error': 'Only customers can delete their own vehicles'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Delete a vehicle
+        instance = self.get_object()
+        self.perform_destroy(instance)
         return Response(
-            {
-                'message': 'Vehicle deactivated successfully'
-            },
+            {'message': 'Vehicle deleted successfully'},
             status=status.HTTP_204_NO_CONTENT
         )
 
@@ -176,5 +212,5 @@ class VehicleViewSet(viewsets.ModelViewSet):
             "email": getattr(user, "email", "No email"),
             "user_role": getattr(user, "user_role", "No role"),
             "is_authenticated": user.is_authenticated,
-            
+
         })

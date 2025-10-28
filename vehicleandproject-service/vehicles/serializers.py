@@ -81,8 +81,7 @@ class VehicleCreateSerializer(VehicleSerializer):
             'year',
             'color',
             'vin',
-            'plate_number',
-            'customer_id',
+            'plate_number'
         ]
 
 class VehicleUpdateSerializer(VehicleSerializer):
