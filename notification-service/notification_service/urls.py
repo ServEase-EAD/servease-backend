@@ -16,8 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.http import HttpResponse
+def home(request):
+    return HttpResponse("Notification Service is up and running!")
 
 urlpatterns = [
+    path("",home),
     path('admin/', admin.site.urls),
     path('api/v1/notifications/', include('app_notifications.urls')),
 ]
