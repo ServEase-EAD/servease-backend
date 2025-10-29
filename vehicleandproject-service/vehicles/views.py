@@ -68,7 +68,6 @@ class VehicleViewSet(viewsets.ModelViewSet):
         """Filter queryset based on user role.
         - Employees (and admins) can see all active vehicles.
         - Customers can only see their own active vehicles.
-        - Others receive 403.
         """
         user = self.request.user
         base_qs = Vehicle.objects.filter(is_active=True)
@@ -80,7 +79,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
             # Limit to vehicles owned by the authenticated customer
             return base_qs.filter(customer_id=getattr(user, "id", None))
 
-        raise PermissionDenied('Not allowed to access vehicles')
+        return base_qs
 
     def create(self, request, *args, **kwargs):
         """Create a new vehicle — auto-assign customer_id from logged-in user"""
@@ -145,20 +144,19 @@ class VehicleViewSet(viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
-        """Delete a vehicle by customer"""
-        """Vehicles with projects cannot be deleted"""
+        """Delete a vehicle by customer - only owner can delete their own vehicle"""
         instance = self.get_object()
         user = request.user
 
-        # Additional check: customers can only delete their own vehicles and employees cannot delete vehicles
-        if user.user_role in ['customer', 'employee'] and instance.customer_id != user.id:
+        # Additional check: customers can only delete their own vehicles
+        # Convert both IDs to strings to handle UUID vs string comparison
+        if user.user_role == 'customer' and str(instance.customer_id) != str(user.id):
             return Response(
-                {'error': 'Only customers can delete their own vehicles'},
+                {'error': 'You can only delete your own vehicles'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Delete a vehicle
-        instance = self.get_object()
+        # Delete the vehicle
         self.perform_destroy(instance)
         return Response(
             {'message': 'Vehicle deleted successfully'},
