@@ -39,6 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'app_notifications',
+    'channels',
+
 ]
 
 MIDDLEWARE = [
@@ -126,3 +130,25 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# ... (lines above)
+
+# =============================================================================
+# CHANNELS/ASGI Configuration (for WebSockets)
+# =============================================================================
+
+# Use the ASGI application you modified
+ASGI_APPLICATION = 'notification_service.asgi.application'
+
+# Channel layer configuration (uses Redis, as defined in docker-compose.yml)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.pubsub.RedisChannelLayer',
+        'CONFIG': {
+            # Use the environment variable to connect to the Redis service name
+            'hosts': [('redis', 6379)], 
+        },
+    },
+}
+
+# The channel layer requires the channels_redis dependency. 
+# You need to ensure the full installation of channels is complete.
