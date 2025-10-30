@@ -29,5 +29,5 @@ RUN mkdir -p /app/staticfiles
 # Expose port
 EXPOSE 8006
 
-# Run the application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8006"]
+# Run migrations and start the ASGI server with Daphne
+CMD ["sh", "-c", "python manage.py migrate && daphne -b 0.0.0.0 -p 8006 notification_service.asgi:application"]

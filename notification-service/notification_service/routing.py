@@ -1,5 +1,5 @@
 from django.urls import re_path
-from notifications import consumers
+from app_notifications import consumers
 
 websocket_urlpatterns = [
     # WebSocket route for a specific user to receive notifications
