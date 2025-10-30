@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.validators import RegexValidator
 import uuid
+from datetime import datetime
+
 
 class Vehicle(models.Model):
     # Primary key - using UUID for better security
@@ -38,6 +40,7 @@ class Vehicle(models.Model):
     )
     
     vin = models.CharField(
+        blank=False,
         max_length=17,
         unique=True,
         validators=[vin_validator],
@@ -51,6 +54,7 @@ class Vehicle(models.Model):
     )
     
     plate_number = models.CharField(
+        blank=False,
         max_length=10,
         unique=True,
         validators=[plate_validator],
@@ -58,7 +62,7 @@ class Vehicle(models.Model):
     )
     
     # Ownership tracking (link to customer service)
-    customer_id = models.IntegerField(
+    customer_id = models.UUIDField(
         help_text="Reference to customer who owns this vehicle",
         db_index=True  # Index for faster queries
     )
@@ -87,5 +91,4 @@ class Vehicle(models.Model):
     @property
     def age(self):
         """Calculate vehicle age"""
-        from datetime import datetime
         return datetime.now().year - self.year
