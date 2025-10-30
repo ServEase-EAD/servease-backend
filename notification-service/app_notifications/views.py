@@ -6,6 +6,8 @@ from rest_framework.permissions import AllowAny # For development; should be IsA
 from .models import Notification
 from .serializers import NotificationSerializer
 from django.utils import timezone
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 class NotificationViewSet(viewsets.ModelViewSet):
     """
@@ -16,6 +18,29 @@ class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [AllowAny] # Set to IsAuthenticated for production
     http_method_names = ['get', 'post', 'delete'] # Limit methods
+
+    def perform_create(self, serializer):
+        """Override to send WebSocket notification after creating."""
+        notification = serializer.save()
+        
+        # Send real-time notification via WebSocket
+        channel_layer = get_channel_layer()
+        user_group_name = f'notifications_{notification.recipient_user_id}'
+        
+        async_to_sync(channel_layer.group_send)(
+            user_group_name,
+            {
+                'type': 'send_notification',
+                'message': {
+                    'id': str(notification.id),
+                    'recipient_user_id': notification.recipient_user_id,
+                    'message': notification.message,
+                    'type': notification.type or 'OTHER',
+                    'read_at': notification.read_at.isoformat() if notification.read_at else None,
+                    'created_at': notification.created_at.isoformat(),
+                }
+            }
+        )
 
     def get_queryset(self):
         """Filter notifications by recipient_user_id (in a real scenario)"""
