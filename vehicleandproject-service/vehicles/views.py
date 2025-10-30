@@ -144,11 +144,9 @@ class VehicleViewSet(viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
-        """Delete a vehicle by customer - only owner can delete their own vehicle"""
-        instance = self.get_object()
         user = request.user
+        instance = self.get_object()
 
-        # Additional check: customers can only delete their own vehicles
         # Convert both IDs to strings to handle UUID vs string comparison
         if user.user_role == 'customer' and str(instance.customer_id) != str(user.id):
             return Response(
@@ -156,7 +154,18 @@ class VehicleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Delete the vehicle
+        # Check for related projects before deletion
+        project_count = instance.projects.count()
+        if project_count > 0:
+            return Response(
+                {
+                    'error': 'Cannot delete vehicle with existing projects',
+                    'message': f'This vehicle has {project_count} project(s). Please delete all projects first.',
+                    'project_count': project_count
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         self.perform_destroy(instance)
         return Response(
             {'message': 'Vehicle deleted successfully'},

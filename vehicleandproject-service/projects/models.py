@@ -14,7 +14,7 @@ class Project(models.Model):
     # link to Vehicle by string reference
     vehicle = models.ForeignKey(
         'vehicles.Vehicle',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='projects'
     )
 
