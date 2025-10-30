@@ -1,7 +1,8 @@
-Django==5.2.6
-djangorestframework==3.15.2
-django-cors-headers==4.4.0
+Django==4.2.7
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
+django-cors-headers==4.3.0
 python-decouple==3.8
-psycopg[binary]==3.2.3
-gunicorn==23.0.0
-Pillow==10.4.0
+# Removed psycopg/psycopg2 to avoid C build requirements on Windows development.
+# For local development we will use SQLite (no DB driver needed).
+gunicorn==21.2.0
