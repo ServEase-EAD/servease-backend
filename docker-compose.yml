@@ -5,8 +5,29 @@ networks:
 volumes:
   redis_data:
   pgadmin_data:
+  postgres_data:
 
 services:
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: servease_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - servease-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   # Cache Service
   redis:
     image: redis:7-alpine
@@ -52,6 +73,8 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - SERVICE_NAME=authentication-service
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -75,6 +98,8 @@ services:
       - SERVICE_NAME=customer-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -100,6 +125,8 @@ services:
       - SERVICE_NAME=employee-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -125,6 +152,8 @@ services:
       - SERVICE_NAME=vehicleandproject-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -152,6 +181,8 @@ services:
       - CUSTOMER_SERVICE_URL=${CUSTOMER_SERVICE_URL}
       - EMPLOYEE_SERVICE_URL=${EMPLOYEE_SERVICE_URL}
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -181,6 +212,8 @@ services:
       - SERVICE_NAME=notification-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -206,6 +239,8 @@ services:
       - SERVICE_NAME=chatbot-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
