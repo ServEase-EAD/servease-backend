@@ -22,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-f7loa%13hw3bxx*_4mi1bej$vt(qs59zwet3kmew1a6je3-rgo'
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-f7loa%13hw3bxx*_4mi1bej$vt(qs59zwet3kmew1a6je3-rgo')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
 
 
 # Application definition
@@ -39,10 +39,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    # Third party apps
+    'rest_framework',
+    'corsheaders',
+    
+    # Local apps
+    'appointments',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -82,6 +90,9 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default=''),
         'PORT': config('DB_PORT', default='5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        }
     }
 }
 
@@ -126,3 +137,64 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'common.authentication.StatelessJWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+}
+
+# CORS Configuration
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+# Service URLs for inter-service communication
+SERVICE_URLS = {
+    'CUSTOMER_SERVICE': config('CUSTOMER_SERVICE_URL', default='http://customer-service:8002'),
+    'EMPLOYEE_SERVICE': config('EMPLOYEE_SERVICE_URL', default='http://employee-service:8003'),
+    'VEHICLE_SERVICE': config('VEHICLE_SERVICE_URL', default='http://vehicleandproject-service:8004'),
+    'APPOINTMENT_SERVICE': config('APPOINTMENT_SERVICE_URL', default='http://appointment-service:8005'),
+    'NOTIFICATION_SERVICE': config('NOTIFICATION_SERVICE_URL', default='http://notification-service:8006'),
+    'USER_SERVICE': config('USER_SERVICE_URL', default='http://authentication-service:8001'),
+    'CHATBOT_SERVICE': config('CHATBOT_SERVICE_URL', default='http://chatbot-service:8008'),
+}
+
+# Redis Configuration
+REDIS_HOST = config('REDIS_HOST', default='redis')
+REDIS_PORT = config('REDIS_PORT', default='6379')
+
+# Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'appointment_service',
+        'TIMEOUT': 300,  # 5 minutes default timeout
+    }
+}
+
+SIMPLE_JWT = {
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "VERIFYING_KEY": "",
+    "USER_ID_FIELD": "user_id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# Appointment Service Settings
+MAX_CONCURRENT_APPOINTMENTS = config('MAX_CONCURRENT_APPOINTMENTS', default=3, cast=int)
+DEFAULT_APPOINTMENT_DURATION = config('DEFAULT_APPOINTMENT_DURATION', default=60, cast=int)
