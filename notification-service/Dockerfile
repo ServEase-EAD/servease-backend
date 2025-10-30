@@ -29,5 +29,9 @@ RUN mkdir -p /app/staticfiles
 # Expose port
 EXPOSE 8006
 
-# Run migrations and start the ASGI server with Daphne
-CMD ["sh", "-c", "python manage.py migrate && daphne -b 0.0.0.0 -p 8006 notification_service.asgi:application"]
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Run migrations, start Daphne and RabbitMQ consumer
+CMD ["/bin/bash", "/app/start.sh"]
