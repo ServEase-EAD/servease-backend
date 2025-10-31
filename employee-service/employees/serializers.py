@@ -18,3 +18,14 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
+
+class AssignedTaskSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    customer_id = serializers.UUIDField()
+    vehicle_id = serializers.UUIDField()
+    appointment_type = serializers.CharField()
+    scheduled_date = serializers.DateField()
+    scheduled_time = serializers.TimeField()
+    status = serializers.CharField()
+    customer_name = serializers.CharField()
+    vehicle_details = serializers.CharField()

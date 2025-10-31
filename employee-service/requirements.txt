@@ -1,8 +1,8 @@
 Django==4.2.7
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.0
+PyJWT==2.8.0
 django-cors-headers==4.3.0
 python-decouple==3.8
-# Removed psycopg/psycopg2 to avoid C build requirements on Windows development.
-# For local development we will use SQLite (no DB driver needed).
+psycopg2-binary==2.9.9
 gunicorn==21.2.0
