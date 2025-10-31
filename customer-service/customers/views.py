@@ -251,15 +251,15 @@ class CustomerViewSet(viewsets.ModelViewSet):
         try:
             customer = Customer.objects.get(user_id=logical_id)
             serializer = CustomerUpdateSerializer(customer, data=request.data)
-            
+
             if serializer.is_valid():
                 serializer.save()
                 # Return updated data with user info
                 response_serializer = CustomerWithUserDataSerializer(customer)
                 return Response(response_serializer.data, status=status.HTTP_200_OK)
-            
+
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
+
         except Customer.DoesNotExist:
             return Response(
                 {'error': 'Customer profile not found'},
@@ -273,16 +273,17 @@ class CustomerViewSet(viewsets.ModelViewSet):
         """
         try:
             customer = Customer.objects.get(user_id=logical_id)
-            serializer = CustomerUpdateSerializer(customer, data=request.data, partial=True)
-            
+            serializer = CustomerUpdateSerializer(
+                customer, data=request.data, partial=True)
+
             if serializer.is_valid():
                 serializer.save()
                 # Return updated data with user info
                 response_serializer = CustomerWithUserDataSerializer(customer)
                 return Response(response_serializer.data, status=status.HTTP_200_OK)
-            
+
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
+
         except Customer.DoesNotExist:
             return Response(
                 {'error': 'Customer profile not found'},
@@ -298,12 +299,12 @@ class CustomerViewSet(viewsets.ModelViewSet):
             customer = Customer.objects.get(user_id=logical_id)
             customer_data = CustomerSerializer(customer).data
             customer.delete()
-            
+
             return Response({
                 'message': 'Customer profile deleted successfully',
                 'deleted_customer': customer_data
             }, status=status.HTTP_200_OK)
-            
+
         except Customer.DoesNotExist:
             return Response(
                 {'error': 'Customer profile not found'},

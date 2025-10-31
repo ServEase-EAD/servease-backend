@@ -27,7 +27,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField(read_only=True)
     full_address = serializers.ReadOnlyField()
     is_business_customer = serializers.ReadOnlyField()
-    
+
     # Logical consolidation: override id to return user_id
     id = serializers.SerializerMethodField(read_only=True)
 

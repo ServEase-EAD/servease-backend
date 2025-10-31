@@ -59,7 +59,8 @@ urlpatterns = [
     path("<uuid:pk>/", customer_detail, name="customer-detail"),
 
     # Customer endpoints using logical ID (user_id from auth service)
-    path("logical/<uuid:logical_id>/", customer_by_logical_id, name="customer-by-logical-id"),
+    path("logical/<uuid:logical_id>/", customer_by_logical_id,
+         name="customer-by-logical-id"),
 
     # Custom action endpoints
     path("<uuid:pk>/dashboard/", customer_dashboard, name="customer-dashboard"),
