@@ -169,8 +169,10 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+# IMPORTANT: CORS is handled by nginx reverse proxy
+# Disable CORS in Django to prevent header duplication
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = []  # Empty - nginx handles CORS
 
 # Security Settings for Production
 if not DEBUG:
