@@ -1,4 +1,7 @@
-"""
+#!/usr/bin/env python3
+"""Script to write the views.py file properly"""
+
+views_content = '''"""
 Customer Service API Views
 Provides CRUD operations and dashboard endpoints for customer-specific data.
 
@@ -12,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
+from datetime import timedelta
 
 from .models import Customer
 from .serializers import (
@@ -42,7 +46,7 @@ def health_check(request):
 class CustomerViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Customer profile CRUD operations.
-
+    
     Manages customer-specific data while user credentials are handled by auth service.
     Each customer profile is linked to a user in the authentication service via user_id.
     """
@@ -50,8 +54,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
     authentication_classes = [CustomerJWTAuthentication]
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend,
-                       filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_verified', 'city', 'state', 'country']
     search_fields = ['city', 'state', 'company_name', 'street_address']
     ordering_fields = ['created_at', 'customer_since', 'total_services']
@@ -92,7 +95,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
     def get_serializer_context(self):
         """Add user data from auth service to serializer context"""
         context = super().get_serializer_context()
-
+        
         # Add authenticated user data to context for serializers
         if hasattr(self.request, 'user') and hasattr(self.request.user, 'user_id'):
             context['user_data'] = {
@@ -101,7 +104,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
                 'first_name': self.request.user.first_name,
                 'last_name': self.request.user.last_name,
             }
-
+        
         return context
 
     def create(self, request, *args, **kwargs):
@@ -118,21 +121,20 @@ class CustomerViewSet(viewsets.ModelViewSet):
         customer = serializer.save()
 
         # Return full customer data with user info
-        response_serializer = CustomerSerializer(
-            customer, context=self.get_serializer_context())
+        response_serializer = CustomerSerializer(customer, context=self.get_serializer_context())
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     def retrieve(self, request, *args, **kwargs):
         """Get customer profile with user data from auth service"""
         customer = self.get_object()
-
+        
         # Fetch user data from authentication service
         user_data = get_user_data_from_auth_service(customer.user_id)
-
+        
         context = self.get_serializer_context()
         if user_data:
             context['user_data'] = user_data
-
+        
         serializer = CustomerSerializer(customer, context=context)
         return Response(serializer.data)
 
@@ -143,16 +145,33 @@ class CustomerViewSet(viewsets.ModelViewSet):
         Returns comprehensive dashboard data for a customer
         """
         customer = self.get_object()
-
+        
         # Fetch user data from auth service
         user_data = get_user_data_from_auth_service(customer.user_id)
-
+        
         context = self.get_serializer_context()
         if user_data:
             context['user_data'] = user_data
-
+        
         serializer = CustomerDashboardSerializer(customer, context=context)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def verify(self, request, pk=None):
+        """
+        POST /api/v1/customers/{id}/verify/
+        Mark customer as verified (admin function)
+        """
+        customer = self.get_object()
+        customer.is_verified = True
+        customer.save()
+
+        return Response({
+            'message': 'Customer verified successfully',
+            'customer_id': str(customer.id),
+            'user_id': str(customer.user_id),
+            'is_verified': customer.is_verified
+        })
 
     @action(detail=True, methods=['post'])
     def increment_service(self, request, pk=None):
@@ -162,13 +181,41 @@ class CustomerViewSet(viewsets.ModelViewSet):
         """
         customer = self.get_object()
         customer.increment_service_count()
-
+        
         return Response({
             'message': 'Service count incremented',
             'customer_id': str(customer.id),
             'total_services': customer.total_services,
             'last_service_date': customer.last_service_date
         })
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """
+        GET /api/v1/customers/stats/
+        Get customer statistics (admin function)
+        """
+        total_customers = Customer.objects.count()
+        verified_customers = Customer.objects.filter(is_verified=True).count()
+        business_customers = Customer.objects.exclude(company_name='').count()
+
+        # New customers in last 30 days
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        new_customers = Customer.objects.filter(created_at__gte=thirty_days_ago).count()
+
+        # Customers by service count
+        active_customers = Customer.objects.filter(total_services__gt=0).count()
+
+        stats = {
+            'total_customers': total_customers,
+            'verified_customers': verified_customers,
+            'business_customers': business_customers,
+            'new_customers_last_30_days': new_customers,
+            'active_customers': active_customers,
+            'verification_rate': round((verified_customers / total_customers * 100), 2) if total_customers > 0 else 0
+        }
+
+        return Response(stats)
 
     @action(detail=False, methods=['get'])
     def by_user_id(self, request):
@@ -186,11 +233,11 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
         try:
             customer = Customer.objects.get(user_id=user_id)
-
+            
             # Fetch user data from auth service
             user_data = get_user_data_from_auth_service(customer.user_id)
             context = {'user_data': user_data} if user_data else {}
-
+            
             serializer = CustomerSerializer(customer, context=context)
             return Response(serializer.data)
         except Customer.DoesNotExist:
@@ -215,16 +262,16 @@ class CustomerViewSet(viewsets.ModelViewSet):
             )
 
         exists = Customer.objects.filter(user_id=user_id).exists()
-
+        
         response_data = {
             'user_id': user_id,
             'profile_exists': exists
         }
-
+        
         if exists:
             customer = Customer.objects.get(user_id=user_id)
             response_data['customer_id'] = str(customer.id)
-
+        
         return Response(response_data)
 
 
@@ -237,11 +284,11 @@ def current_customer_profile(request):
     """
     try:
         customer = Customer.objects.get(user_id=request.user.user_id)
-
+        
         # Fetch user data from auth service
         user_data = get_user_data_from_auth_service(customer.user_id)
         context = {'user_data': user_data} if user_data else {}
-
+        
         serializer = CustomerSerializer(customer, context=context)
         return Response(serializer.data)
     except Customer.DoesNotExist:
@@ -261,7 +308,7 @@ def update_customer_profile(request):
     """
     PUT/PATCH /api/v1/customers/profile/update/
     Update current customer's profile
-
+    
     Note: To update user credentials (email, name, phone), use the authentication service.
     """
     try:
@@ -274,12 +321,12 @@ def update_customer_profile(request):
 
         if serializer.is_valid():
             serializer.save()
-
+            
             # Return full customer data with user info
             user_data = get_user_data_from_auth_service(customer.user_id)
             context = {'user_data': user_data} if user_data else {}
             response_serializer = CustomerSerializer(customer, context=context)
-
+            
             return Response(response_serializer.data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -297,7 +344,7 @@ def create_customer_profile(request):
     """
     POST /api/v1/customers/profile/create/
     Create customer profile for authenticated user
-
+    
     This should be called after user registration in the authentication service.
     """
     # Check if profile already exists
@@ -314,7 +361,7 @@ def create_customer_profile(request):
     serializer = CustomerCreateSerializer(data=profile_data)
     if serializer.is_valid():
         customer = serializer.save()
-
+        
         # Return full customer data with user info
         user_data = {
             'user_id': request.user.user_id,
@@ -324,7 +371,7 @@ def create_customer_profile(request):
         }
         context = {'user_data': user_data}
         response_serializer = CustomerSerializer(customer, context=context)
-
+        
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -336,7 +383,7 @@ def delete_customer_profile(request):
     """
     DELETE /api/v1/customers/profile/delete/
     Delete current customer's profile
-
+    
     Note: This only deletes the customer profile, not the user account.
     To delete user account, use the authentication service.
     """
@@ -352,9 +399,16 @@ def delete_customer_profile(request):
             'user_id': user_id,
             'note': 'User account still exists in authentication service'
         }, status=status.HTTP_200_OK)
-
+        
     except Customer.DoesNotExist:
         return Response(
             {'error': 'Customer profile not found'},
             status=status.HTTP_404_NOT_FOUND
         )
+'''
+
+# Write the file
+with open('customers/views.py', 'w', encoding='utf-8') as f:
+    f.write(views_content)
+
+print("views.py created successfully!")
