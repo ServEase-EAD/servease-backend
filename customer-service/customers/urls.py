@@ -26,6 +26,13 @@ customer_increment_service = CustomerViewSet.as_view({
     'post': 'increment_service'
 })
 
+customer_by_logical_id = CustomerViewSet.as_view({
+    'get': 'retrieve_by_logical_id',
+    'put': 'update_by_logical_id',
+    'patch': 'partial_update_by_logical_id',
+    'delete': 'destroy_by_logical_id'
+})
+
 customer_by_user_id = CustomerViewSet.as_view({
     'get': 'by_user_id'
 })
@@ -47,9 +54,12 @@ urlpatterns = [
     path("profile/delete/", delete_customer_profile,
          name="delete-customer-profile"),
 
-    # Main customer endpoints
+    # Main customer endpoints (using database ID - legacy)
     path("", customer_viewset, name="customer-list"),
     path("<uuid:pk>/", customer_detail, name="customer-detail"),
+
+    # Customer endpoints using logical ID (user_id from auth service)
+    path("logical/<uuid:logical_id>/", customer_by_logical_id, name="customer-by-logical-id"),
 
     # Custom action endpoints
     path("<uuid:pk>/dashboard/", customer_dashboard, name="customer-dashboard"),

@@ -16,6 +16,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     """
     Comprehensive customer serializer with user data from auth service.
     Includes read-only fields populated from authentication service.
+    Uses user_id as the logical primary identifier.
     """
 
     # Read-only fields from authentication service
@@ -26,12 +27,15 @@ class CustomerSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField(read_only=True)
     full_address = serializers.ReadOnlyField()
     is_business_customer = serializers.ReadOnlyField()
+    
+    # Logical consolidation: override id to return user_id
+    id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Customer
         fields = [
-            # Core fields
-            'id', 'user_id',
+            # Core fields (id is now user_id logically)
+            'id',
             # Auth service fields (read-only)
             'email', 'first_name', 'last_name', 'phone_number', 'full_name',
             # Address fields
@@ -51,6 +55,10 @@ class CustomerSerializer(serializers.ModelSerializer):
             'id', 'customer_since', 'created_at', 'updated_at',
             'total_services', 'full_name', 'full_address', 'is_business_customer'
         ]
+
+    def get_id(self, obj):
+        """Return user_id as the logical primary identifier"""
+        return str(obj.user_id)
 
     def get_full_name(self, obj):
         """Get full name from context or return placeholder"""

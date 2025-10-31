@@ -227,6 +227,89 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
         return Response(response_data)
 
+    # New logical ID methods for unified ID access
+    def retrieve_by_logical_id(self, request, logical_id=None):
+        """
+        GET /api/v1/customers/logical/<uuid:logical_id>/
+        Get customer profile by logical ID (user_id from auth service)
+        """
+        try:
+            customer = Customer.objects.get(user_id=logical_id)
+            serializer = CustomerWithUserDataSerializer(customer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Customer.DoesNotExist:
+            return Response(
+                {'error': 'Customer profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def update_by_logical_id(self, request, logical_id=None):
+        """
+        PUT /api/v1/customers/logical/<uuid:logical_id>/
+        Update customer profile by logical ID (user_id from auth service)
+        """
+        try:
+            customer = Customer.objects.get(user_id=logical_id)
+            serializer = CustomerUpdateSerializer(customer, data=request.data)
+            
+            if serializer.is_valid():
+                serializer.save()
+                # Return updated data with user info
+                response_serializer = CustomerWithUserDataSerializer(customer)
+                return Response(response_serializer.data, status=status.HTTP_200_OK)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Customer.DoesNotExist:
+            return Response(
+                {'error': 'Customer profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def partial_update_by_logical_id(self, request, logical_id=None):
+        """
+        PATCH /api/v1/customers/logical/<uuid:logical_id>/
+        Partial update customer profile by logical ID (user_id from auth service)
+        """
+        try:
+            customer = Customer.objects.get(user_id=logical_id)
+            serializer = CustomerUpdateSerializer(customer, data=request.data, partial=True)
+            
+            if serializer.is_valid():
+                serializer.save()
+                # Return updated data with user info
+                response_serializer = CustomerWithUserDataSerializer(customer)
+                return Response(response_serializer.data, status=status.HTTP_200_OK)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Customer.DoesNotExist:
+            return Response(
+                {'error': 'Customer profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    def destroy_by_logical_id(self, request, logical_id=None):
+        """
+        DELETE /api/v1/customers/logical/<uuid:logical_id>/
+        Delete customer profile by logical ID (user_id from auth service)
+        """
+        try:
+            customer = Customer.objects.get(user_id=logical_id)
+            customer_data = CustomerSerializer(customer).data
+            customer.delete()
+            
+            return Response({
+                'message': 'Customer profile deleted successfully',
+                'deleted_customer': customer_data
+            }, status=status.HTTP_200_OK)
+            
+        except Customer.DoesNotExist:
+            return Response(
+                {'error': 'Customer profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
 
 @api_view(['GET'])
 @permission_classes([IsCustomer])
