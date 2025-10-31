@@ -4,12 +4,44 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 
 from .serializers import *
 from .permissions import IsAdmin, IsEmployeeOrAdmin, IsOwnerOrAdmin
 from .models import CustomUser
+
+def get_tokens_for_user(user):
+    """
+    Generate tokens with custom claims including user_role
+    """
+    refresh = RefreshToken.for_user(user)
+    
+    # Add custom claims
+    refresh['user_role'] = user.user_role
+    refresh['email'] = user.email
+    refresh['first_name'] = user.first_name
+    refresh['last_name'] = user.last_name
+    
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
+# Alternative approach: Custom TokenObtainPairSerializer
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Add custom claims
+        token['user_role'] = user.user_role
+        token['email'] = user.email
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        
+        return token
 
 class UserRegistrationAPIView(GenericAPIView):
     """Customer registration - publicly accessible"""
@@ -20,9 +52,10 @@ class UserRegistrationAPIView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        token = RefreshToken.for_user(user)
+         # Use custom token generation
+        tokens = get_tokens_for_user(user)
         data = serializer.data
-        data["tokens"] = {"refresh": str(token), "access": str(token.access_token)}
+        data["tokens"] = tokens
         data["user_role"] = user.user_role
         return Response(data, status=status.HTTP_201_CREATED)
 
@@ -51,9 +84,12 @@ class UserLoginAPIView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data
         serializer = CustomUserSerializer(user)
-        token = RefreshToken.for_user(user)
+        # Use custom token generation
+        tokens = get_tokens_for_user(user)
         data = serializer.data
-        data["tokens"] = {"refresh": str(token), "access": str(token.access_token)}
+        data["tokens"] = tokens
+
+        
         return Response(data, status=status.HTTP_200_OK)
 
 class UserLogoutAPIView(GenericAPIView):

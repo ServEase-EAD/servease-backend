@@ -55,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middleware.SecurityHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'authentication_service.urls'
@@ -226,8 +227,8 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),  # Increased to 1 hour
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Increased to 7 days
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
