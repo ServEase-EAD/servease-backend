@@ -22,10 +22,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-wjwti*(f69eps3jdrk#3w2wjm!ky_2@bd(k71m7=ic(_jq6i@%'
+# CRITICAL: Must match the SECRET_KEY in authentication service for JWT to work across services
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-please-change-this-in-production-12345')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = ['*']  # Configure properly in production
 
@@ -58,26 +59,10 @@ MIDDLEWARE = [
 ]
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
-]
-
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
+# IMPORTANT: CORS is handled by nginx reverse proxy
+# Disable CORS in Django to prevent header duplication
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = []  # Empty - nginx handles CORS
 
 ROOT_URLCONF = 'notification_service.urls'
 
