@@ -176,9 +176,9 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+# CORS Configuration - Handled by nginx
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = False
 
 # Security Settings for Production
 if not DEBUG:
