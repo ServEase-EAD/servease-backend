@@ -5,29 +5,8 @@ networks:
 volumes:
   redis_data:
   pgadmin_data:
-  rabbitmq_data:
 
 services:
-  # Database Service
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: servease_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - servease-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   # Cache Service
   redis:
     image: redis:7-alpine
@@ -40,26 +19,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # Message Queue
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    ports:
-      - "5672:5672" # AMQP protocol port
-      - "15672:15672" # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - servease-network
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -93,8 +52,6 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - SERVICE_NAME=authentication-service
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -118,8 +75,6 @@ services:
       - SERVICE_NAME=customer-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -145,8 +100,6 @@ services:
       - SERVICE_NAME=employee-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -172,8 +125,6 @@ services:
       - SERVICE_NAME=vehicleandproject-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -201,8 +152,6 @@ services:
       - CUSTOMER_SERVICE_URL=${CUSTOMER_SERVICE_URL}
       - EMPLOYEE_SERVICE_URL=${EMPLOYEE_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -229,17 +178,10 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=${REDIS_HOST}
-      - RABBITMQ_HOST=${RABBITMQ_HOST:-rabbitmq}
-      - RABBITMQ_USER=${RABBITMQ_USER:-admin}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-admin123}
       - SERVICE_NAME=notification-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
       authentication-service:
         condition: service_started
@@ -264,8 +206,6 @@ services:
       - SERVICE_NAME=chatbot-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
