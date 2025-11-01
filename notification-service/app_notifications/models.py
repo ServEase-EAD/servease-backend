@@ -13,7 +13,8 @@ class Notification(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # The user_id of the recipient (links to Auth service)
-    recipient_user_id = models.IntegerField(db_index=True)
+    # Changed to UUIDField to support UUID-based user IDs
+    recipient_user_id = models.UUIDField(db_index=True)
     message = models.TextField()
     type = models.CharField(max_length=20, choices=NOTIFICATION_TYPE_CHOICES, default='OTHER')
     read_at = models.DateTimeField(null=True, blank=True)
