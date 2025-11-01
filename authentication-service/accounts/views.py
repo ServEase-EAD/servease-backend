@@ -59,6 +59,7 @@ class UserRegistrationAPIView(GenericAPIView):
         data["user_role"] = user.user_role
         return Response(data, status=status.HTTP_201_CREATED)
 
+
 class EmployeeRegistrationAPIView(GenericAPIView):
     """Employee registration - admin only"""
     permission_classes = (IsAdmin,)
@@ -68,12 +69,13 @@ class EmployeeRegistrationAPIView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
+
         # Return employee data without tokens (admin creates employee accounts)
         response_data = UserDetailSerializer(user).data
         response_data["message"] = "Employee account created successfully"
-        
+
         return Response(response_data, status=status.HTTP_201_CREATED)
+
 
 class UserLoginAPIView(GenericAPIView):
     permission_classes = (AllowAny,)
@@ -92,48 +94,52 @@ class UserLoginAPIView(GenericAPIView):
         
         return Response(data, status=status.HTTP_200_OK)
 
+
 class UserLogoutAPIView(GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
         try:
             refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
+            token = CustomRefreshToken(refresh_token)
             token.blacklist()
             return Response({"message": "Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class EmployeeListAPIView(ListAPIView):
     """List all employees - admin only"""
     permission_classes = (IsAdmin,)
     serializer_class = UserListSerializer
-    
+
     def get_queryset(self):
         return CustomUser.objects.filter(user_role='employee').order_by('-created_at')
+
 
 class UserListAPIView(ListAPIView):
     """List all users - admin only"""
     permission_classes = (IsAdmin,)
     serializer_class = UserListSerializer
-    
+
     def get_queryset(self):
         role = self.request.query_params.get('role', None)
         queryset = CustomUser.objects.all().order_by('-created_at')
-        
+
         if role:
             queryset = queryset.filter(user_role=role)
-        
+
         return queryset
+
 
 class UserDetailAPIView(RetrieveUpdateDestroyAPIView):
     """Get, update, or delete user details"""
     serializer_class = UserDetailSerializer
     permission_classes = (IsAuthenticated,)
-    
+
     def get_queryset(self):
         return CustomUser.objects.all()
-    
+
     def get_permissions(self):
         """
         Instantiates and returns the list of permissions that this view requires.
@@ -149,8 +155,9 @@ class UserDetailAPIView(RetrieveUpdateDestroyAPIView):
             permission_classes = [IsAdmin]
         else:
             permission_classes = [IsAuthenticated]
-        
+
         return [permission() for permission in permission_classes]
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -159,15 +166,18 @@ def current_user_profile(request):
     serializer = CustomUserSerializer(request.user)
     return Response(serializer.data)
 
+
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_current_user_profile(request):
     """Update current user's profile"""
-    serializer = CustomUserSerializer(request.user, data=request.data, partial=True)
+    serializer = CustomUserSerializer(
+        request.user, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 @permission_classes([IsAdmin])
@@ -177,7 +187,7 @@ def toggle_user_status(request, user_id):
         user = CustomUser.objects.get(id=user_id)
         user.is_active = not user.is_active
         user.save()
-        
+
         status_text = "activated" if user.is_active else "deactivated"
         return Response({
             "message": f"User {user.email} has been {status_text}",
@@ -185,6 +195,7 @@ def toggle_user_status(request, user_id):
         })
     except CustomUser.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['GET'])
 @permission_classes([IsAdmin])
@@ -196,7 +207,7 @@ def admin_dashboard_stats(request):
     total_admins = CustomUser.objects.filter(user_role='admin').count()
     active_users = CustomUser.objects.filter(is_active=True).count()
     inactive_users = CustomUser.objects.filter(is_active=False).count()
-    
+
     return Response({
         "total_users": total_users,
         "total_customers": total_customers,
@@ -205,3 +216,48 @@ def admin_dashboard_stats(request):
         "active_users": active_users,
         "inactive_users": inactive_users
     })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def validate_token(request):
+    """Validate JWT token and return user data - for inter-service communication"""
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    from rest_framework_simplejwt.exceptions import InvalidToken
+
+    try:
+        auth = JWTAuthentication()
+        header = auth.get_header(request)
+
+        if header is None:
+            return Response({'error': 'Authorization header missing'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        raw_token = auth.get_raw_token(header)
+        if raw_token is None:
+            return Response({'error': 'Invalid token format'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        validated_token = auth.get_validated_token(raw_token)
+        user = auth.get_user(validated_token)
+
+        if not user or not user.is_active:
+            return Response({'error': 'User not found or inactive'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        # Return user data for other services
+        return Response({
+            'user_id': user.id,
+            'email': user.email,
+            'user_role': user.user_role,
+            'is_active': user.is_active,
+            'first_name': getattr(user, 'first_name', ''),
+            'last_name': getattr(user, 'last_name', ''),
+        })
+
+    except InvalidToken as e:
+        return Response({'error': 'Invalid token'},
+                        status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        return Response({'error': f'Token validation failed: {str(e)}'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)

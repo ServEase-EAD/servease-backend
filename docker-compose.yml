@@ -5,7 +5,6 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
   redis_data:
   pgadmin_data:
   rabbitmq_data:
@@ -23,7 +22,7 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - servease_network
+      - servease-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -96,8 +95,6 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - SERVICE_NAME=authentication-service
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -121,8 +118,6 @@ services:
       - SERVICE_NAME=customer-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -148,8 +143,6 @@ services:
       - SERVICE_NAME=employee-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -175,8 +168,6 @@ services:
       - SERVICE_NAME=vehicleandproject-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -204,8 +195,6 @@ services:
       - CUSTOMER_SERVICE_URL=${CUSTOMER_SERVICE_URL}
       - EMPLOYEE_SERVICE_URL=${EMPLOYEE_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
@@ -238,8 +227,6 @@ services:
       - SERVICE_NAME=notification-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
@@ -267,8 +254,6 @@ services:
       - SERVICE_NAME=chatbot-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       authentication-service:
