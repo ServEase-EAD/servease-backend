@@ -24,10 +24,12 @@ __pycache__/
 dist/
 build/
 
-# Virtual environments
+# Virtual environments (not used - we use Docker)
 venv/
 env/
 ENV/
+.venv/
+virtualenv/
 
 # IDE
 .vscode/
@@ -39,8 +41,8 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Docker
-.dockerignore
+# Docker (don't ignore .dockerignore - we want to track it)
+# .dockerignore
 
 # Logs
 *.log
