@@ -10,7 +10,7 @@ cd /app
 
 # Run migrations
 echo "📦 Running database migrations..."
-python manage.py migrate --noinput
+python manage.py migrate
 
 # Start Daphne in the background
 echo "🌐 Starting Daphne ASGI server on port 8006..."

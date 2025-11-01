@@ -23,7 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-%0cdw-(4gvq-c!ezk#r^f(p*&ny9uz&+tyg=!w7i_0k-8po*(!')
+SECRET_KEY = config(
+    'SECRET_KEY', default='django-insecure-%0cdw-(4gvq-c!ezk#r^f(p*&ny9uz&+tyg=!w7i_0k-8po*(!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -89,6 +90,13 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default=''),
         'PORT': config('DB_PORT', default='5432'),
+        'OPTIONS': {
+            'connect_timeout': 60,
+            'sslmode': 'prefer',
+            'sslcert': None,
+            'sslkey': None,
+            'sslrootcert': None,
+        }
     }
 }
 
@@ -176,13 +184,20 @@ CORS_ALLOWED_ORIGINS = []  # Empty - nginx handles CORS
 
 # Security Settings for Production
 if not DEBUG:
-    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
-    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
-    SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=True, cast=bool)
-    SECURE_CONTENT_TYPE_NOSNIFF = config('SECURE_CONTENT_TYPE_NOSNIFF', default=True, cast=bool)
-    SECURE_BROWSER_XSS_FILTER = config('SECURE_BROWSER_XSS_FILTER', default=True, cast=bool)
-    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+    SECURE_SSL_REDIRECT = config(
+        'SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SECURE_HSTS_SECONDS = config(
+        'SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = config(
+        'SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
+    SECURE_HSTS_PRELOAD = config(
+        'SECURE_HSTS_PRELOAD', default=True, cast=bool)
+    SECURE_CONTENT_TYPE_NOSNIFF = config(
+        'SECURE_CONTENT_TYPE_NOSNIFF', default=True, cast=bool)
+    SECURE_BROWSER_XSS_FILTER = config(
+        'SECURE_BROWSER_XSS_FILTER', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = config(
+        'SESSION_COOKIE_SECURE', default=True, cast=bool)
     CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
 
 # Logging Configuration
