@@ -3,8 +3,10 @@ networks:
     driver: bridge
 
 volumes:
+
   redis_data:
   pgadmin_data:
+  rabbitmq_data:
 
 services:
   # Cache Service
@@ -19,6 +21,26 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Message Queue
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - servease-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -178,10 +200,15 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=${REDIS_HOST}
+      - RABBITMQ_HOST=${RABBITMQ_HOST:-rabbitmq}
+      - RABBITMQ_USER=${RABBITMQ_USER:-admin}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-admin123}
       - SERVICE_NAME=notification-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     depends_on:
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       authentication-service:
         condition: service_started
