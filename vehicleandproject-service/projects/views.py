@@ -1,3 +1,4 @@
+from pickle import GET
 from django.shortcuts import render
 
 # Create your views here.
@@ -29,12 +30,22 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ViewSet for Project CRUD operations
 
     Provides:
-    - GET /api/v1/projects/ - List all projects
+    - GET /api/v1/projects/ - List projects (filtered by user role)
     - POST /api/v1/projects/ - Create new project  
     - GET /api/v1/projects/{id}/ - Get specific project
     - PUT /api/v1/projects/{id}/ - Update project
     - PATCH /api/v1/projects/{id}/ - Partial update
     - DELETE /api/v1/projects/{id}/ - Delete project
+    
+    Access Control:
+    - Employees: Can see all projects, can filter by customer_id query parameter
+    - Customers: Can only see their own projects (auto-filtered by JWT token)
+    
+    Query Parameters (for employees):
+    - customer_id: Filter projects for specific customer
+    - status: Filter by project status
+    - vehicle__make: Filter by vehicle make
+    - vehicle__model: Filter by vehicle model
     """
 
     queryset = Project.objects.all()
