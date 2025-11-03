@@ -4,6 +4,9 @@ from .views import (
     EmployeeListCreateView,
     EmployeeRetrieveUpdateDestroyView,
     AssignedTasksViewSet,
+    ProfileView,
+    UpdateProfileView,
+    ChangePasswordView,
 )
 
 router = DefaultRouter()
@@ -13,4 +16,9 @@ urlpatterns = [
     path('employees/', EmployeeListCreateView.as_view(), name='employee-list-create'),
     path('employees/<uuid:pk>/', EmployeeRetrieveUpdateDestroyView.as_view(), name='employee-detail'),
     path('v1/employee/', include(router.urls)),
+
+    # Profile-related endpoints
+    path('profile/', ProfileView.as_view(), name='employee-profile'),
+    path('profile/update/', UpdateProfileView.as_view(), name='employee-profile-update'),
+    path('profile/password/', ChangePasswordView.as_view(), name='employee-profile-password'),
 ]
