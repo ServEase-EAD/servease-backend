@@ -16,8 +16,29 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def test_auth(request):
+    """Test endpoint to verify JWT authentication works"""
+    return Response({
+        'message': 'Authentication successful!',
+        'user_id': request.user.user_id if hasattr(request.user, 'user_id') else None,
+        'auth_header': request.META.get('HTTP_AUTHORIZATION', 'No auth header'),
+    })
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/v1/employees/', include('employees.urls')),
+    path('api/v1/employees/', include('employees.urls')),           # Employee profiles
+    path('api/v1/employees/timelogs/', include('timelogs.urls')),    # Time logs (employee-centric)
+    path('api/v1/test-auth/', test_auth),                           # Test authentication
+    
+    # Health check
+    path('health/', lambda request: JsonResponse({'status': 'healthy'})),
 ]
