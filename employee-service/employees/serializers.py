@@ -5,10 +5,12 @@ from .models import Employee, AssignedTask
 
 
 class EmployeeProfileSerializer(serializers.ModelSerializer):
-    full_name = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField(read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
     last_login = serializers.DateTimeField(source="user.last_login", read_only=True)
     account_created = serializers.DateTimeField(source="user.date_joined", read_only=True)
+    is_active = serializers.BooleanField(source="user.is_active", read_only=True)
+    user_role = serializers.CharField(source="access_role", read_only=True)
 
     class Meta:
         model = Employee
@@ -28,28 +30,51 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             "account_created",
             "last_login",
             "status",
+            "is_active",
             "access_role",
+            "user_role",
             "address_line1",
             "address_line2",
             "city",
             "postal_code",
+        ]
+        read_only_fields = [
+            "id",
+            "full_name",
+            "email",
+            "employee_id",
+            "role",
+            "department",
+            "joining_date",
+            "employment_type",
+            "supervisor",
+            "account_created",
+            "last_login",
+            "status",
+            "is_active",
+            "access_role",
+            "user_role",
         ]
 
     def get_full_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}".strip()
 
     def update(self, instance, validated_data):
-        user = instance.user
-        full_name = self.initial_data.get("full_name", "")
-        if full_name:
-            parts = full_name.split(" ", 1)
-            user.first_name = parts[0]
-            if len(parts) > 1:
-                user.last_name = parts[1]
-            user.save()
-
-        for field, value in validated_data.items():
-            setattr(instance, field, value)
+        # Only allow updating specific fields (not full_name or employment info)
+        allowed_fields = [
+            'phone_number', 
+            'gender', 
+            'date_of_birth',
+            'address_line1',
+            'address_line2',
+            'city',
+            'postal_code'
+        ]
+        
+        for field in allowed_fields:
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
+        
         instance.save()
         return instance
 

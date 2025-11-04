@@ -14,7 +14,15 @@ class ProfileView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        return Employee.objects.get(user=self.request.user)
+        # Get or create employee profile for the authenticated user
+        employee, created = Employee.objects.get_or_create(
+            user=self.request.user,
+            defaults={
+                'status': 'Active',
+                'access_role': 'Employee',
+            }
+        )
+        return employee
 
 
 class UpdateProfileView(generics.UpdateAPIView):
@@ -22,7 +30,15 @@ class UpdateProfileView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        return Employee.objects.get(user=self.request.user)
+        # Get or create employee profile for the authenticated user
+        employee, created = Employee.objects.get_or_create(
+            user=self.request.user,
+            defaults={
+                'status': 'Active',
+                'access_role': 'Employee',
+            }
+        )
+        return employee
 
 
 class ChangePasswordView(generics.GenericAPIView):
