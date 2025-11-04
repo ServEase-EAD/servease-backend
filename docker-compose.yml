@@ -284,3 +284,5 @@ services:
     networks:
       - servease_network
     restart: unless-stopped
+    command: /bin/sh -c "sleep 10 && nginx -g 'daemon off;'"
+
