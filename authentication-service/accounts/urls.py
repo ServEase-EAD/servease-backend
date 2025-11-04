@@ -24,7 +24,7 @@ urlpatterns = [
          EmployeeRegistrationAPIView.as_view(), name="create-employee"),
     path("admin/employees/", EmployeeListAPIView.as_view(), name="list-employees"),
     path("admin/users/", UserListAPIView.as_view(), name="list-all-users"),
-    path("admin/users/<int:pk>/", UserDetailAPIView.as_view(), name="user-detail"),
-    path("admin/users/<int:user_id>/toggle-status/",
+    path("admin/users/<uuid:pk>/", UserDetailAPIView.as_view(), name="user-detail"),
+    path("admin/users/<uuid:user_id>/toggle-status/",
          toggle_user_status, name="toggle-user-status"),
 ]

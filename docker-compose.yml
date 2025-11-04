@@ -242,6 +242,31 @@ services:
       - ./chatbot-service:/app
     restart: unless-stopped
 
+  admin-service:
+    build: ./admin-service
+    env_file:
+      - .env
+    ports:
+      - "8007:8007"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${ADMIN_DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - SERVICE_NAME=admin-service
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+    depends_on:
+      redis:
+        condition: service_healthy
+      authentication-service:
+        condition: service_started
+    networks:
+      - servease_network
+    volumes:
+      - ./admin-service:/app
+    restart: unless-stopped
+
   # ✅ API Gateway (Nginx)
   nginx:
     image: nginx:alpine
@@ -260,6 +285,7 @@ services:
       - notification-service
       - vehicleandproject-service
       - chatbot-service
+      - admin-service
     networks:
       - servease_network
     restart: unless-stopped
