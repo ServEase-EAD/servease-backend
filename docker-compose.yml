@@ -3,11 +3,32 @@ networks:
     driver: bridge
 
 volumes:
+  postgres_data:
   redis_data:
   pgadmin_data:
   rabbitmq_data:
 
 services:
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: servease_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - servease_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   # Cache Service
   redis:
     image: redis:7-alpine
@@ -263,3 +284,5 @@ services:
     networks:
       - servease_network
     restart: unless-stopped
+    command: /bin/sh -c "sleep 10 && nginx -g 'daemon off;'"
+
