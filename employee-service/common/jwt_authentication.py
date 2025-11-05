@@ -28,13 +28,19 @@ class CustomJWTAuthentication(JWTAuthentication):
             last_name = validated_token.get('last_name', '')
             user_role = validated_token.get('user_role', 'employee')
             
+            # Debug logging
+            print(f"DEBUG JWT: Token claims - user_id: {user_id_from_token}, email: {email}, role: {user_role}")
+            
             if not email:
+                print("DEBUG JWT: Token does not contain email - INVALID")
                 raise InvalidToken('Token does not contain email')
             
             # Try to find user by email (since email is unique)
             try:
                 user = User.objects.get(email=email)
+                print(f"DEBUG JWT: Found existing user: {user.username} ({user.email})")
             except User.DoesNotExist:
+                print(f"DEBUG JWT: User not found, creating new user for email: {email}")
                 # Create user if doesn't exist
                 # Use a username based on email since username is required
                 username = email.split('@')[0]
@@ -52,14 +58,18 @@ class CustomJWTAuthentication(JWTAuthentication):
                     first_name=first_name,
                     last_name=last_name,
                 )
+                print(f"DEBUG JWT: Created new user: {user.username}")
                 
                 # Create corresponding Employee profile if user_role is employee
                 if user_role == 'employee':
-                    Employee.objects.get_or_create(user=user)
+                    employee, created = Employee.objects.get_or_create(user=user)
+                    print(f"DEBUG JWT: Employee profile created: {created}")
             
             return user
             
-        except KeyError:
+        except KeyError as e:
+            print(f"DEBUG JWT: KeyError - {str(e)}")
             raise InvalidToken('Token contained no recognizable user identification')
         except Exception as e:
+            print(f"DEBUG JWT: Exception during user lookup - {str(e)}")
             raise AuthenticationFailed(f'User lookup failed: {str(e)}')
