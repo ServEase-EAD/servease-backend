@@ -3,11 +3,32 @@ networks:
     driver: bridge
 
 volumes:
+  postgres_data:
   redis_data:
   pgadmin_data:
   rabbitmq_data:
 
 services:
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: servease_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - servease_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   # Cache Service
   redis:
     image: redis:7-alpine
@@ -242,6 +263,31 @@ services:
       - ./chatbot-service:/app
     restart: unless-stopped
 
+  admin-service:
+    build: ./admin-service
+    env_file:
+      - .env
+    ports:
+      - "8007:8007"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${ADMIN_DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - SERVICE_NAME=admin-service
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+    depends_on:
+      redis:
+        condition: service_healthy
+      authentication-service:
+        condition: service_started
+    networks:
+      - servease_network
+    volumes:
+      - ./admin-service:/app
+    restart: unless-stopped
+
   # ✅ API Gateway (Nginx)
   nginx:
     image: nginx:alpine
@@ -260,6 +306,8 @@ services:
       - notification-service
       - vehicleandproject-service
       - chatbot-service
+      - admin-service
     networks:
       - servease_network
     restart: unless-stopped
+    command: /bin/sh -c "sleep 10 && nginx -g 'daemon off;'"
