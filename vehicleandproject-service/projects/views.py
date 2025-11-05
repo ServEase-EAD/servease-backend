@@ -13,15 +13,19 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Q
-from .models import Project
+from .models import Project, Task
 from vehicles.models import Vehicle
-from .permissions import IsCustomer, IsEmployee
+from .permissions import IsCustomer, IsEmployee, IsAdmin
 
 from .serializers import (
     ProjectSerializer,
     ProjectCreateSerializer,
     ProjectUpdateSerializer,
-    ProjectListSerializer
+    ProjectListSerializer,
+    ProjectApprovalSerializer,
+    TaskSerializer,
+    TaskCreateSerializer,
+    TaskUpdateSerializer
 )
 
 
@@ -93,9 +97,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Project.objects.all()
 
-        # Employees can see all projects
-        if getattr(user, "user_role", None) == "employee":
+        # Admins can see all projects
+        if getattr(user, "user_role", None) == "admin":
             return queryset
+
+        # Employees can only see projects assigned to them
+        elif getattr(user, "user_role", None) == "employee":
+            employee_id = getattr(user, 'id', None)
+            if employee_id:
+                return queryset.filter(assigned_employee_id=employee_id)
+            return queryset.none()
 
         # Customers can only see their own projects (using customer_id from JWT token)
         elif getattr(user, "user_role", None) == "customer":
@@ -125,13 +136,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # Validate the request data first
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            # Save the project with customer_id automatically set
-            project = serializer.save(customer_id=customer_id)
+            # Save the project with customer_id and pending approval status
+            project = serializer.save(customer_id=customer_id, approval_status='pending')
             # Return full project details after creation
             response_serializer = ProjectSerializer(project)
             return Response(
                 {
-                    'message': 'Project created successfully',
+                    'message': 'Project created successfully and pending admin approval',
                     'data': response_serializer.data
                 },
                 status=status.HTTP_201_CREATED
@@ -287,6 +298,97 @@ class ProjectViewSet(viewsets.ModelViewSet):
             {
                 'message': f'Projects for vehicle {vehicle_id}',
                 'count': projects.count(),
+                'data': serializer.data
+            }
+        )
+
+    # Note: Admin operations (approve/reject, assign employees) are handled by admin-service
+    # This service only provides read access to projects based on user role
+
+
+class TaskViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Task operations
+    
+    - Admins: Full CRUD access to tasks (accessed via admin-service proxy)
+    - Employees: Read-only access to tasks for their assigned projects
+    - Customers: Read-only access to tasks for their own projects
+    
+    Note: Admin operations should be accessed through admin-service for better control
+    """
+    
+    queryset = Task.objects.all()
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'task_id'
+    
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['project', 'status', 'priority']
+    search_fields = ['title', 'description']
+    ordering_fields = ['created_at', 'due_date', 'priority']
+    ordering = ['-created_at']
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if self.action == 'create':
+            return TaskCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return TaskUpdateSerializer
+        return TaskSerializer
+    
+    def get_permissions(self):
+        """RBAC logic for tasks - Admin only for write operations"""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsAuthenticated, IsAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+    
+    def get_queryset(self):
+        """Filter tasks based on user permissions - READ ONLY"""
+        user = self.request.user
+        queryset = Task.objects.select_related('project').all()
+        
+        # Admins can see all tasks (but create/update/delete via admin-service)
+        if getattr(user, "user_role", None) == "admin":
+            return queryset
+        
+        # Employees can see tasks for their assigned projects
+        elif getattr(user, "user_role", None) == "employee":
+            employee_id = getattr(user, 'id', None)
+            if employee_id:
+                return queryset.filter(project__assigned_employee_id=employee_id)
+            return queryset.none()
+        
+        # Customers can see tasks for their projects
+        elif getattr(user, "user_role", None) == "customer":
+            customer_id = getattr(user, 'id', None)
+            if customer_id:
+                return queryset.filter(project__customer_id=customer_id)
+            return queryset.none()
+        
+        return queryset.none()
+    
+    @action(detail=False, methods=['get'])
+    def by_project(self, request):
+        """Get all tasks for a specific project"""
+        project_id = request.query_params.get('project_id')
+        if not project_id:
+            return Response(
+                {'error': 'project_id parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        tasks = self.get_queryset().filter(project__project_id=project_id)
+        page = self.paginate_queryset(tasks)
+        if page is not None:
+            serializer = TaskSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = TaskSerializer(tasks, many=True)
+        return Response(
+            {
+                'message': f'Tasks for project {project_id}',
+                'count': tasks.count(),
                 'data': serializer.data
             }
         )
