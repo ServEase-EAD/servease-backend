@@ -7,7 +7,13 @@ from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta
 from decimal import Decimal
 from .models import TimeLog, Shift, DailyTimeTotal
-from .serializers import TimeLogSerializer, TimeLogListSerializer, ShiftSerializer, DailyTimeTotalSerializer
+from .serializers import (
+    TimeLogSerializer, 
+    TimeLogListSerializer, 
+    TimeLogStatusUpdateSerializer,
+    ShiftSerializer, 
+    DailyTimeTotalSerializer
+)
 
 
 def update_daily_total(employee_id, log_date):
@@ -57,6 +63,8 @@ class TimeLogViewSet(viewsets.ModelViewSet):
     queryset = TimeLog.objects.all()
     permission_classes = [IsAuthenticated]
     lookup_field = 'log_id'
+    # Disable destroy action - employees cannot delete timelogs
+    http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options']
     
     def get_employee_id(self):
         """Extract employee_id from JWT token"""
@@ -65,8 +73,12 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         return None
     
     def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
         if self.action == 'list':
             return TimeLogListSerializer
+        elif self.action in ['update', 'partial_update']:
+            # Employees can only update status, not other details
+            return TimeLogStatusUpdateSerializer
         return TimeLogSerializer
     
     def get_queryset(self):
@@ -91,10 +103,64 @@ class TimeLogViewSet(viewsets.ModelViewSet):
             update_daily_total(instance.employee_id, instance.log_date)
     
     def perform_update(self, serializer):
-        """Override update to update daily totals"""
+        """Override update to update daily totals and enforce immutability rules"""
+        # Get the instance before updating
+        instance = self.get_object()
+        
+        # Check if the timelog is completed - completed timelogs are immutable
+        if instance.status == 'completed':
+            raise ValueError('Cannot edit a completed timelog. Completed timelogs are immutable.')
+        
         instance = serializer.save()
         if instance.log_date:
             update_daily_total(instance.employee_id, instance.log_date)
+    
+    def update(self, request, *args, **kwargs):
+        """Update timelog - employees can only change status, and completed timelogs are immutable"""
+        instance = self.get_object()
+        
+        # Check if timelog is completed - completed timelogs cannot be edited
+        if instance.status == 'completed':
+            return Response(
+                {'error': 'Cannot edit a completed timelog. Completed timelogs are immutable.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Employees can only update the status field, no other fields
+        # Check if any fields other than 'status' are being updated
+        allowed_fields = {'status'}
+        attempted_fields = set(request.data.keys())
+        
+        if not attempted_fields.issubset(allowed_fields):
+            disallowed_fields = attempted_fields - allowed_fields
+            return Response(
+                {
+                    'error': f'Employees can only update the status field. Cannot update: {", ".join(disallowed_fields)}',
+                    'allowed_fields': list(allowed_fields)
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            # Return full timelog details after status update
+            response_serializer = TimeLogSerializer(instance)
+            return Response(
+                {
+                    'message': 'Timelog status updated successfully',
+                    'data': response_serializer.data
+                }
+            )
+        return Response(
+            {
+                'message': 'Error updating timelog',
+                'errors': serializer.errors
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
     @action(detail=False, methods=['get'])
     def employee_logs(self, request):
@@ -185,7 +251,10 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         """Start/resume a time log"""
         log = self.get_object()
         if log.status == 'completed':
-            return Response({'error': 'Cannot restart completed log'}, status=400)
+            return Response(
+                {'error': 'Cannot restart a completed timelog. Completed timelogs are immutable.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         log.status = 'inprogress'
         log.start_time = datetime.now()
@@ -197,8 +266,18 @@ class TimeLogViewSet(viewsets.ModelViewSet):
     def pause(self, request, log_id=None):
         """Pause a time log"""
         log = self.get_object()
+        
+        if log.status == 'completed':
+            return Response(
+                {'error': 'Cannot pause a completed timelog. Completed timelogs are immutable.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         if log.status != 'inprogress':
-            return Response({'error': 'Log is not in progress'}, status=400)
+            return Response(
+                {'error': 'Timelog is not in progress'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         log.status = 'paused'
         if log.start_time and not log.end_time:
@@ -210,10 +289,13 @@ class TimeLogViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def complete(self, request, log_id=None):
-        """Complete a time log"""
+        """Complete a time log - once completed, timelog becomes immutable"""
         log = self.get_object()
         if log.status == 'completed':
-            return Response({'error': 'Log already completed'}, status=400)
+            return Response(
+                {'error': 'Timelog is already completed'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         log.status = 'completed'
         log.end_time = datetime.now()
@@ -226,7 +308,12 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         if log.log_date:
             update_daily_total(log.employee_id, log.log_date)
         
-        return Response(TimeLogSerializer(log).data)
+        return Response(
+            {
+                'message': 'Timelog completed successfully. Note: Completed timelogs are immutable.',
+                'data': TimeLogSerializer(log).data
+            }
+        )
 
 
 class ShiftViewSet(viewsets.ModelViewSet):
