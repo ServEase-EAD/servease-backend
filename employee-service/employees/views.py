@@ -14,6 +14,11 @@ class ProfileView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
+        # Debug logging
+        print(f"DEBUG: User authenticated: {self.request.user}")
+        print(f"DEBUG: User is_authenticated: {self.request.user.is_authenticated}")
+        print(f"DEBUG: User email: {self.request.user.email}")
+        
         # Get or create employee profile for the authenticated user
         employee, created = Employee.objects.get_or_create(
             user=self.request.user,
@@ -22,6 +27,10 @@ class ProfileView(generics.RetrieveAPIView):
                 'access_role': 'Employee',
             }
         )
+        
+        if created:
+            print(f"DEBUG: New employee profile created for {self.request.user}")
+        
         return employee
 
 
