@@ -33,7 +33,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
                 'type': 'send_notification',
                 'message': {
                     'id': str(notification.id),
-                    'recipient_user_id': notification.recipient_user_id,
+                    'recipient_user_id': str(notification.recipient_user_id),
                     'message': notification.message,
                     'type': notification.type or 'OTHER',
                     'read_at': notification.read_at.isoformat() if notification.read_at else None,
