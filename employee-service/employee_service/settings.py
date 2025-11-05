@@ -59,9 +59,24 @@ MIDDLEWARE = [
 ]
 
 # CORS settings
-# Disabled - nginx handles CORS
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 # REST Framework settings
 REST_FRAMEWORK = {
@@ -77,6 +92,10 @@ REST_FRAMEWORK = {
 
 # JWT settings
 from datetime import timedelta
+# CRITICAL: JWT_SECRET_KEY must match across all services!
+# Use the same SECRET_KEY as authentication service for JWT signing
+JWT_SECRET_KEY = config('JWT_SECRET_KEY', default=SECRET_KEY)
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -84,7 +103,7 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": config('JWT_SECRET_KEY', default=SECRET_KEY),
+    "SIGNING_KEY": JWT_SECRET_KEY,  # Must match authentication service!
     "VERIFYING_KEY": "",
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",

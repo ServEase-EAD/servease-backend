@@ -137,6 +137,9 @@ SIMPLE_JWT = {
 # Authentication Service URL (for user data)
 AUTH_SERVICE_URL = config('AUTH_SERVICE_URL', default='http://authentication-service:8001')
 
+# Vehicle and Project Service URL (for project and task management)
+VEHICLEPROJECT_SERVICE_URL = config('VEHICLEPROJECT_SERVICE_URL', default='http://vehicleandproject-service:8004')
+
 # Redis Configuration
 REDIS_HOST = config('REDIS_HOST', default='redis')
 REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)

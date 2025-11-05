@@ -50,6 +50,22 @@ class TimeLogSerializer(serializers.ModelSerializer):
         return data
 
 
+class TimeLogStatusUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating only the status field - employees can only change status"""
+    class Meta:
+        model = TimeLog
+        fields = ['status']
+    
+    def validate_status(self, value):
+        """Validate that the status is valid"""
+        valid_statuses = ['not_started', 'inprogress', 'paused', 'completed']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(
+                f"Status must be one of: {', '.join(valid_statuses)}"
+            )
+        return value
+
+
 class TimeLogListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for listing"""
     duration = serializers.SerializerMethodField()
