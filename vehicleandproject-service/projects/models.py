@@ -111,6 +111,8 @@ class Task(models.Model):
     )
 
     description = models.TextField(
+        blank=True,
+        default='',
         help_text="Detailed description of the task"
     )
 
@@ -146,6 +148,14 @@ class Task(models.Model):
         null=True,
         blank=True,
         help_text="Due date for the task"
+    )
+
+    # Employee assignment
+    assigned_employee_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text="ID of the employee assigned to this task",
+        db_index=True
     )
 
     # Audit fields
