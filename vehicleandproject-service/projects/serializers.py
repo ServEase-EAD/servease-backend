@@ -115,7 +115,10 @@ class ProjectUpdateSerializer(BaseProjectSerializer):
         fields = [
             'title',
             'description',
-            'expected_completion_date'
+            'expected_completion_date',
+            'status',
+            'approval_status',
+            'assigned_employee_id'
         ]
     
     def validate_status(self, value):
@@ -171,7 +174,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Task
-        fields = ['project', 'title', 'description', 'priority', 'due_date']
+        fields = ['project', 'title', 'description', 'priority', 'due_date', 'assigned_employee_id']
     
     def validate_title(self, value):
         """Validate title length"""
@@ -185,4 +188,4 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Task
-        fields = ['title', 'description', 'status', 'priority', 'due_date']
+        fields = ['title', 'description', 'status', 'priority', 'due_date', 'assigned_employee_id']

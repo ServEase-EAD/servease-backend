@@ -6,17 +6,18 @@ from .views import ProjectViewSet, TaskViewSet
 router = DefaultRouter()
 router.register(r'', ProjectViewSet, basename='project')  # Empty string since main URL already has 'projects/'
 
-# Create a separate router for tasks to nest under projects
+# Create a separate router for tasks
 tasks_router = DefaultRouter()
-tasks_router.register(r'tasks', TaskViewSet, basename='task')
+tasks_router.register(r'', TaskViewSet, basename='task')  # Empty string, will be prefixed by 'tasks/' in urlpatterns
 
 app_name = 'projects'
 
 urlpatterns = [
+    # Include tasks router URLs FIRST - tasks will be at /api/v1/projects/tasks/
+    # This must come before the project router to avoid 'tasks' being interpreted as a project_id
+    path('tasks/', include(tasks_router.urls)),
     # Include project router URLs
     path('', include(router.urls)),
-    # Include tasks router URLs - tasks will be at /api/v1/projects/tasks/
-    path('', include(tasks_router.urls)),
 ]
 
 # This generates the following URL patterns:

@@ -299,9 +299,9 @@ def get_user_statistics(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([])  # Allow unauthenticated access for health check
 def health_check(request):
-    """Health check endpoint"""
+    """Health check endpoint - No authentication required"""
     return Response({
         'status': 'healthy',
         'service': 'admin-service'
