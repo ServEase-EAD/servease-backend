@@ -17,12 +17,11 @@ urlpatterns = [
         'post': 'create'
     }), name='employee-timelogs-list'),
     
-    # Individual log detail endpoints
+    # Individual log detail endpoints (no delete - timelogs cannot be deleted)
     path('<uuid:log_id>/', TimeLogViewSet.as_view({
         'get': 'retrieve',
         'put': 'update',
-        'patch': 'partial_update',
-        'delete': 'destroy'
+        'patch': 'partial_update'
     }), name='employee-timelog-detail'),
     
     # Timelog actions
@@ -59,11 +58,10 @@ urlpatterns = [
 # Generated URLs (employee_id extracted from JWT token):
 # GET/POST   /api/v1/employees/timelogs/                         - List/Create time logs for logged-in employee
 # GET        /api/v1/employees/timelogs/{log_id}/                - Get specific time log
-# PUT/PATCH  /api/v1/employees/timelogs/{log_id}/                - Update time log
-# DELETE     /api/v1/employees/timelogs/{log_id}/                - Delete time log
-# POST       /api/v1/employees/timelogs/{log_id}/start/          - Start/resume log
-# POST       /api/v1/employees/timelogs/{log_id}/pause/          - Pause log
-# POST       /api/v1/employees/timelogs/{log_id}/complete/       - Complete log
+# PUT/PATCH  /api/v1/employees/timelogs/{log_id}/                - Update time log STATUS ONLY (not allowed if status is 'completed')
+# POST       /api/v1/employees/timelogs/{log_id}/start/          - Start/resume log (not allowed if status is 'completed')
+# POST       /api/v1/employees/timelogs/{log_id}/pause/          - Pause log (not allowed if status is 'completed')
+# POST       /api/v1/employees/timelogs/{log_id}/complete/       - Complete log (makes timelog immutable)
 # GET        /api/v1/employees/timelogs/logs/                    - Get employee logs with filters
 # GET        /api/v1/employees/timelogs/stats/                   - Get employee statistics
 # GET        /api/v1/employees/timelogs/daily-totals/            - Get daily totals for employee
@@ -71,3 +69,9 @@ urlpatterns = [
 # POST       /api/v1/employees/timelogs/shifts/start_shift/      - Start new shift
 # POST       /api/v1/employees/timelogs/shifts/{id}/end_shift/   - End shift
 # GET        /api/v1/employees/timelogs/daily-totals/            - List all daily totals
+# 
+# RESTRICTIONS:
+# - DELETE endpoint is disabled - employees cannot delete timelogs
+# - PUT/PATCH can only update 'status' field - all other fields are read-only for employees
+# - Completed timelogs are immutable and cannot be edited or have status changed
+# - Fields like description, duration, task_type, project_id, etc. cannot be modified after creation
