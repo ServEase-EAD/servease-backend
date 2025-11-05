@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project
+from .models import Project, Task
 from datetime import datetime, timedelta
 
 class BaseProjectSerializer(serializers.ModelSerializer):
@@ -42,13 +42,40 @@ class BaseProjectSerializer(serializers.ModelSerializer):
                 })
         return attrs
 
+class TaskSerializer(serializers.ModelSerializer):
+    """Serializer for Task model"""
+    
+    class Meta:
+        model = Task
+        fields = '__all__'
+        read_only_fields = ['task_id', 'created_at', 'updated_at']
+    
+    def validate_due_date(self, value):
+        """Validate that the due date is not in the past"""
+        if value and value < datetime.now().date():
+            raise serializers.ValidationError("Due date cannot be in the past")
+        return value
+    
+    def validate_title(self, value):
+        """Validate title length"""
+        if len(value) < 3:
+            raise serializers.ValidationError("Title must be at least 3 characters long")
+        return value
+
+
 class ProjectSerializer(BaseProjectSerializer):
     """Main serializer for Project CRUD operations"""
+    tasks = TaskSerializer(many=True, read_only=True)
+    tasks_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = '__all__'
         read_only_fields = ['project_id', 'vehicle', 'customer_id', 'created_at', 'updated_at']
+    
+    def get_tasks_count(self, obj):
+        """Get the count of tasks for this project"""
+        return obj.tasks.count()
     
     def validate_status(self, value):
         """Validate status field"""
@@ -100,6 +127,7 @@ class ProjectUpdateSerializer(BaseProjectSerializer):
 
 class ProjectListSerializer(serializers.ModelSerializer):
     """Serializer for listing projects with summary info"""
+    tasks_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Project
@@ -109,8 +137,52 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'customer_id',
             'title',
             'status',
+            'approval_status',
+            'assigned_employee_id',
             'description',
             'expected_completion_date',
+            'tasks_count',
             'created_at',
         ]
         read_only_fields = fields
+    
+    def get_tasks_count(self, obj):
+        """Get the count of tasks for this project"""
+        return obj.tasks.count()
+
+
+class ProjectApprovalSerializer(serializers.ModelSerializer):
+    """Serializer for admin to approve/reject projects"""
+    
+    class Meta:
+        model = Project
+        fields = ['approval_status', 'assigned_employee_id', 'status']
+    
+    def validate_approval_status(self, value):
+        """Validate approval status"""
+        valid_statuses = ['pending', 'approved', 'rejected']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(f"Approval status must be one of: {', '.join(valid_statuses)}")
+        return value
+
+
+class TaskCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating tasks"""
+    
+    class Meta:
+        model = Task
+        fields = ['project', 'title', 'description', 'priority', 'due_date']
+    
+    def validate_title(self, value):
+        """Validate title length"""
+        if len(value) < 3:
+            raise serializers.ValidationError("Title must be at least 3 characters long")
+        return value
+
+
+class TaskUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating tasks"""
+    
+    class Meta:
+        model = Task
+        fields = ['title', 'description', 'status', 'priority', 'due_date']
