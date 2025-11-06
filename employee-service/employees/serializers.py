@@ -10,7 +10,6 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
     last_login = serializers.DateTimeField(source="user.last_login", read_only=True)
     account_created = serializers.DateTimeField(source="user.date_joined", read_only=True)
     is_active = serializers.BooleanField(source="user.is_active", read_only=True)
-    user_role = serializers.CharField(source="access_role", read_only=True)
 
     class Meta:
         model = Employee
@@ -21,18 +20,9 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             "phone_number",
             "gender",
             "date_of_birth",
-            "employee_id",
-            "role",
-            "department",
-            "joining_date",
-            "employment_type",
-            "supervisor",
             "account_created",
             "last_login",
-            "status",
             "is_active",
-            "access_role",
-            "user_role",
             "address_line1",
             "address_line2",
             "city",
@@ -42,18 +32,9 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             "id",
             "full_name",
             "email",
-            "employee_id",
-            "role",
-            "department",
-            "joining_date",
-            "employment_type",
-            "supervisor",
             "account_created",
             "last_login",
-            "status",
             "is_active",
-            "access_role",
-            "user_role",
         ]
 
     def get_full_name(self, obj):

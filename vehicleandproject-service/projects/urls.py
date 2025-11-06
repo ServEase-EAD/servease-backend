@@ -6,17 +6,17 @@ from .views import ProjectViewSet, TaskViewSet
 router = DefaultRouter()
 router.register(r'', ProjectViewSet, basename='project')  # Empty string since main URL already has 'projects/'
 
-# Create a separate router for tasks to nest under projects
+# Create a separate router for tasks
 tasks_router = DefaultRouter()
-tasks_router.register(r'tasks', TaskViewSet, basename='task')
+tasks_router.register(r'', TaskViewSet, basename='task')  # Use empty string for task routes
 
 app_name = 'projects'
 
 urlpatterns = [
-    # Include project router URLs
+    # Task routes under /tasks/ prefix - these need to come first to avoid conflicts
+    path('tasks/', include(tasks_router.urls)),
+    # Project routes - these are at the root level
     path('', include(router.urls)),
-    # Include tasks router URLs - tasks will be at /api/v1/projects/tasks/
-    path('', include(tasks_router.urls)),
 ]
 
 # This generates the following URL patterns:
@@ -32,19 +32,22 @@ urlpatterns = [
 # GET    /api/v1/projects/by_vehicle/?vehicle_id=xxx    - Get projects by vehicle
 # GET    /api/v1/projects/customer_projects/            - Get customer's own projects
 #
-# Tasks (READ-ONLY, filtered by role):
+# Tasks (READ-ONLY for employees/customers, full CRUD for admins):
 # GET    /api/v1/projects/tasks/                        - List all tasks (filtered by role)
-# GET    /api/v1/projects/tasks/{task_id}/              - Get specific task (read-only)
+# POST   /api/v1/projects/tasks/                        - Create task (Admin only)
+# GET    /api/v1/projects/tasks/{task_id}/              - Get specific task
+# PUT    /api/v1/projects/tasks/{task_id}/              - Update task (Admin only)
+# PATCH  /api/v1/projects/tasks/{task_id}/              - Partial update task (Admin only)
+# DELETE /api/v1/projects/tasks/{task_id}/              - Delete task (Admin only)
 # GET    /api/v1/projects/tasks/by_project/?project_id=xxx - Get tasks by project
 #
-# ⚠️  ADMIN OPERATIONS MOVED TO ADMIN-SERVICE:
-# The following operations are handled by admin-service, not here:
-# - Approve/Reject projects
-# - Assign employees to projects
-# - Create/Update/Delete tasks
-# - View pending approval projects
+# ⚠️  IMPORTANT NOTES:
+# - Tasks can also be managed via admin-service for centralized admin operations
+# - Employees see only tasks assigned to them (filtered by assigned_employee_id from JWT)
+# - Customers see only tasks for their projects (filtered by project__customer_id from JWT)
+# - Admins can see and manage all tasks
 #
 # Access Control:
 # - Customer: Create projects (pending approval), view own projects, view tasks for own projects
-# - Employee: View assigned projects only, update project status, view tasks for assigned projects
-# - Admin: Use admin-service for project approval, employee assignment, and task management
+# - Employee: View assigned projects, update project status, view tasks assigned to them
+# - Admin: Full access to all projects and tasks
