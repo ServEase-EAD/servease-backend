@@ -5,6 +5,7 @@ from .models import Employee, AssignedTask
 
 
 class EmployeeProfileSerializer(serializers.ModelSerializer):
+    # Read-only fields from User model
     full_name = serializers.SerializerMethodField(read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
     last_login = serializers.DateTimeField(source="user.last_login", read_only=True)
@@ -27,6 +28,11 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             "address_line2",
             "city",
             "postal_code",
+            # Additional employee-specific fields
+            "specialization",
+            "experience_years",
+            "hourly_rate",
+            "is_available",
         ]
         read_only_fields = [
             "id",
@@ -35,13 +41,25 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             "account_created",
             "last_login",
             "is_active",
+            # These are managed by admin/HR
+            "specialization",
+            "experience_years", 
+            "hourly_rate",
+            "is_available",
         ]
 
     def get_full_name(self, obj):
-        return f"{obj.user.first_name} {obj.user.last_name}".strip()
+        """Get full name from the related User model"""
+        if obj.user:
+            return f"{obj.user.first_name} {obj.user.last_name}".strip()
+        return ""
 
     def update(self, instance, validated_data):
-        # Only allow updating specific fields (not full_name or employment info)
+        """
+        Update only the allowed fields for employee profile.
+        These are the fields that employees can update themselves.
+        """
+        # Fields that employees can update themselves
         allowed_fields = [
             'phone_number', 
             'gender', 
@@ -52,12 +70,35 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             'postal_code'
         ]
         
+        print(f"DEBUG Serializer: Updating employee {instance.id}")
+        print(f"DEBUG Serializer: Validated data: {validated_data}")
+        
+        # Update only allowed fields
         for field in allowed_fields:
             if field in validated_data:
-                setattr(instance, field, validated_data[field])
+                old_value = getattr(instance, field)
+                new_value = validated_data[field]
+                print(f"DEBUG Serializer: {field}: '{old_value}' -> '{new_value}'")
+                setattr(instance, field, new_value)
         
         instance.save()
+        print(f"DEBUG Serializer: Successfully saved employee {instance.id}")
         return instance
+
+    def validate_phone_number(self, value):
+        """Validate phone number format"""
+        if value and len(value.strip()) > 0:
+            # Remove any spaces or special characters for basic validation
+            cleaned = ''.join(filter(str.isdigit, value))
+            if len(cleaned) < 9:
+                raise serializers.ValidationError("Phone number must be at least 9 digits")
+        return value
+
+    def validate_gender(self, value):
+        """Validate gender choices"""
+        if value and value not in ['Male', 'Female', 'Other']:
+            raise serializers.ValidationError("Gender must be Male, Female, or Other")
+        return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):

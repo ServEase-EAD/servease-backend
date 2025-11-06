@@ -5,7 +5,6 @@ from .views import (
     EmployeeRetrieveUpdateDestroyView,
     AssignedTasksViewSet,
     ProfileView,
-    UpdateProfileView,
     ChangePasswordView,
 )
 
@@ -22,6 +21,6 @@ urlpatterns = [
 
     # Profile-related endpoints
     path('profile/', ProfileView.as_view(), name='employee-profile'),
-    path('profile/update/', UpdateProfileView.as_view(), name='employee-profile-update'),
+    path('profile/update/', ProfileView.as_view(), name='employee-profile-update'),  # Use same view for PUT
     path('profile/password/', ChangePasswordView.as_view(), name='employee-profile-password'),
 ]

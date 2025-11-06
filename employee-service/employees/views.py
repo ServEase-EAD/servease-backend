@@ -9,45 +9,51 @@ from .permissions import IsEmployeeOwnerOrAdmin
 import requests
 from django.conf import settings
 
-class ProfileView(generics.RetrieveAPIView):
+class ProfileView(generics.RetrieveUpdateAPIView):
+    """
+    Handle both GET and PUT requests for employee profile.
+    GET: Retrieve employee profile
+    PUT/PATCH: Update employee profile
+    """
     serializer_class = EmployeeProfileSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # Debug logging
-        print(f"DEBUG: User authenticated: {self.request.user}")
-        print(f"DEBUG: User is_authenticated: {self.request.user.is_authenticated}")
-        print(f"DEBUG: User email: {self.request.user.email}")
-        
-        # Get or create employee profile for the authenticated user
-        employee, created = Employee.objects.get_or_create(
-            user=self.request.user,
-            defaults={
-                'status': 'Active',
-                'access_role': 'Employee',
-            }
-        )
-        
-        if created:
-            print(f"DEBUG: New employee profile created for {self.request.user}")
-        
-        return employee
+        """
+        Get employee profile for the authenticated user.
+        The CustomJWTAuthentication automatically creates Employee profile
+        if it doesn't exist, so we should always find one.
+        """
+        try:
+            # Get employee profile for the authenticated user
+            employee = Employee.objects.get(user=self.request.user)
+            print(f"DEBUG: Found employee profile for {self.request.user.email}")
+            return employee
+        except Employee.DoesNotExist:
+            # This should not happen due to CustomJWTAuthentication, but handle it just in case
+            print(f"DEBUG: Employee profile not found for {self.request.user.email}, creating...")
+            employee = Employee.objects.create(user=self.request.user)
+            return employee
 
-
-class UpdateProfileView(generics.UpdateAPIView):
-    serializer_class = EmployeeProfileSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_object(self):
-        # Get or create employee profile for the authenticated user
-        employee, created = Employee.objects.get_or_create(
-            user=self.request.user,
-            defaults={
-                'status': 'Active',
-                'access_role': 'Employee',
-            }
-        )
-        return employee
+    def update(self, request, *args, **kwargs):
+        """
+        Override update to add logging and ensure proper response
+        """
+        partial = kwargs.pop('partial', True)  # Allow partial updates by default
+        instance = self.get_object()
+        
+        print(f"DEBUG: Updating employee profile for user {request.user.email}")
+        print(f"DEBUG: Update data: {request.data}")
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # Perform the update
+        updated_instance = serializer.save()
+        
+        print(f"DEBUG: Successfully updated employee profile: {updated_instance.id}")
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ChangePasswordView(generics.GenericAPIView):
