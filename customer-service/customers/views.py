@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
+from django.conf import settings
 
 from .models import Customer
 from .serializers import (
@@ -19,7 +20,7 @@ from .serializers import (
     CustomerUpdateSerializer, CustomerDashboardSerializer,
     CustomerWithUserDataSerializer
 )
-from .permissions import IsCustomer, IsOwnerCustomer
+from .permissions import IsCustomer, IsOwnerCustomer, IsOwnerOrAdminOrEmployee
 from .authentication import CustomerJWTAuthentication, get_user_data_from_auth_service
 
 
@@ -75,6 +76,9 @@ class CustomerViewSet(viewsets.ModelViewSet):
         """Define permissions based on action"""
         if self.action == 'create':
             permission_classes = [IsAuthenticated]
+        elif self.action in ['retrieve_by_logical_id', 'update_by_logical_id', 'partial_update_by_logical_id']:
+            # Allow admins/employees to access any customer, or customers to access their own
+            permission_classes = [IsOwnerOrAdminOrEmployee]
         elif self.action in ['retrieve', 'update', 'partial_update', 'destroy', 'dashboard']:
             permission_classes = [IsOwnerCustomer]
         else:
@@ -235,6 +239,28 @@ class CustomerViewSet(viewsets.ModelViewSet):
         """
         try:
             customer = Customer.objects.get(user_id=logical_id)
+            
+            # Extract auth token from request to pass to auth service
+            auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+            auth_token = None
+            if auth_header.startswith('Bearer '):
+                auth_token = auth_header.split(' ')[1]
+            
+            # Fetch user data from auth service with authentication
+            user_data = self._get_user_data_with_auth(logical_id, auth_token)
+            if user_data:
+                customer.user_data = user_data
+            else:
+                # Provide default user data if auth service call fails
+                customer.user_data = {
+                    'email': '',
+                    'first_name': '',
+                    'last_name': '',
+                    'phone_number': '',
+                    'user_role': 'customer',
+                    'is_active': True
+                }
+            
             serializer = CustomerWithUserDataSerializer(customer)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Customer.DoesNotExist:
@@ -242,6 +268,36 @@ class CustomerViewSet(viewsets.ModelViewSet):
                 {'error': 'Customer profile not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
+    
+    def _get_user_data_with_auth(self, user_id, auth_token=None):
+        """
+        Fetch user data from auth service with authentication token.
+        """
+        try:
+            import requests
+            auth_service_url = getattr(
+                settings, 'AUTH_SERVICE_URL', 'http://authentication-service:8001')
+            
+            headers = {}
+            if auth_token:
+                headers['Authorization'] = f'Bearer {auth_token}'
+            
+            # Call auth service user detail endpoint
+            response = requests.get(
+                f'{auth_service_url}/api/v1/auth/admin/users/{user_id}/',
+                headers=headers,
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Failed to fetch user data from auth service: {response.status_code} - {response.text[:200]}")
+                return None
+        except Exception as e:
+            print(f"Error fetching user data from auth service: {e}")
+            return None
+
 
     def update_by_logical_id(self, request, logical_id=None):
         """

@@ -87,11 +87,12 @@ class CustomerJWTAuthentication(BaseAuthentication):
             last_name = payload.get('last_name', '')
             user_role = payload.get('user_role', 'customer')
 
-            # Only allow customers to access customer service
-            if user_role != 'customer':
+            # Allow customers, admins, and employees to access customer service
+            # Admins and employees need access for inter-service calls and management
+            if user_role not in ['customer', 'admin', 'employee']:
                 raise exceptions.PermissionDenied(
-                    'Only customers can access this service. '
-                    f'Your role is: {user_role}'
+                    'Access denied. '
+                    f'Your role ({user_role}) is not authorized.'
                 )
 
             # Create custom user object with token data
