@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta
+from django.utils import timezone
 from decimal import Decimal
 from .models import TimeLog, Shift, DailyTimeTotal
 from .serializers import (
@@ -250,21 +251,34 @@ class TimeLogViewSet(viewsets.ModelViewSet):
     def start(self, request, log_id=None):
         """Start/resume a time log"""
         log = self.get_object()
+        
         if log.status == 'completed':
             return Response(
                 {'error': 'Cannot restart a completed timelog. Completed timelogs are immutable.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        # Debug logging
+        print(f"▶️ START/RESUME: Log {log.log_id}")
+        print(f"   Previous status: {log.status}")
+        print(f"   Accumulated duration: {log.duration_seconds}s")
+        
+        # Update status and reset start_time for new session
         log.status = 'inprogress'
-        log.start_time = datetime.now()
+        log.start_time = timezone.now()  # Use timezone-aware datetime
+        log.end_time = None  # Clear end_time when starting/resuming
+        
+        print(f"   New start time: {log.start_time}")
+        print(f"   Duration preserved: {log.duration_seconds}s")
+        
         log.save()
         
-        return Response(TimeLogSerializer(log).data)
+        serializer = TimeLogSerializer(log)
+        return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def pause(self, request, log_id=None):
-        """Pause a time log"""
+        """Pause a time log and accumulate duration"""
         log = self.get_object()
         
         if log.status == 'completed':
@@ -279,39 +293,72 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Store previous duration for logging
+        previous_duration = log.duration_seconds
+        
+        # Update status
         log.status = 'paused'
-        if log.start_time and not log.end_time:
-            duration = (datetime.now() - log.start_time).total_seconds()
-            log.duration_seconds += int(duration)
+        
+        # Calculate duration from current session and add to accumulated duration
+        if log.start_time:
+            current_session_duration = (timezone.now() - log.start_time).total_seconds()
+            log.duration_seconds += int(current_session_duration)
+            log.end_time = None  # Clear end_time when pausing (not completing)
+            
+            # Debug logging
+            print(f"⏸️ PAUSE: Log {log.log_id}")
+            print(f"   Previous accumulated: {previous_duration}s")
+            print(f"   Session duration: {int(current_session_duration)}s")
+            print(f"   New accumulated: {log.duration_seconds}s")
+            print(f"   Start time was: {log.start_time}")
+        
         log.save()
         
-        return Response(TimeLogSerializer(log).data)
+        serializer = TimeLogSerializer(log)
+        return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def complete(self, request, log_id=None):
         """Complete a time log - once completed, timelog becomes immutable"""
         log = self.get_object()
+        
         if log.status == 'completed':
             return Response(
                 {'error': 'Timelog is already completed'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Store previous duration for logging
+        previous_duration = log.duration_seconds
+        
+        # Update status and end time
         log.status = 'completed'
-        log.end_time = datetime.now()
+        log.end_time = timezone.now()  # Use timezone-aware datetime
+        
+        # Calculate final duration and add to accumulated duration
         if log.start_time:
-            duration = (log.end_time - log.start_time).total_seconds()
-            log.duration_seconds = int(duration)
+            current_session_duration = (log.end_time - log.start_time).total_seconds()
+            log.duration_seconds += int(current_session_duration)  # ADD to accumulated, don't overwrite!
+            
+            # Debug logging
+            print(f"✅ COMPLETE: Log {log.log_id}")
+            print(f"   Previous accumulated: {previous_duration}s")
+            print(f"   Final session duration: {int(current_session_duration)}s")
+            print(f"   Total duration: {log.duration_seconds}s")
+            print(f"   Start time was: {log.start_time}")
+            print(f"   End time: {log.end_time}")
+        
         log.save()
         
         # Update daily totals after completion
         if log.log_date:
             update_daily_total(log.employee_id, log.log_date)
         
+        serializer = TimeLogSerializer(log)
         return Response(
             {
                 'message': 'Timelog completed successfully. Note: Completed timelogs are immutable.',
-                'data': TimeLogSerializer(log).data
+                'data': serializer.data
             }
         )
 
@@ -339,10 +386,11 @@ class ShiftViewSet(viewsets.ModelViewSet):
         if active_shift:
             return Response({'error': 'Active shift already exists'}, status=400)
         
+        now = timezone.now()
         shift = Shift.objects.create(
             employee_id=employee_id,
-            shift_date=datetime.now().date(),
-            start_time=datetime.now(),
+            shift_date=now.date(),
+            start_time=now,
             is_active=True
         )
         
@@ -355,7 +403,7 @@ class ShiftViewSet(viewsets.ModelViewSet):
         if not shift.is_active:
             return Response({'error': 'Shift already ended'}, status=400)
         
-        shift.end_time = datetime.now()
+        shift.end_time = timezone.now()
         shift.is_active = False
         
         # Calculate total hours
