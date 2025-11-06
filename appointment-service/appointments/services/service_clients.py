@@ -181,3 +181,39 @@ class NotificationServiceClient(ServiceClient):
         }
         return messages.get(notification_type, f"Appointment {notification_type}")
 
+
+class AuthServiceClient(ServiceClient):
+    """Client for Authentication Service interactions"""
+    
+    @staticmethod
+    def get_admin_users(auth_token=None):
+        """
+        Get all admin users from authentication service
+        Returns: List of admin user objects
+        """
+        url = f"{settings.SERVICE_URLS['USER_SERVICE']}/api/v1/auth/admin/users/"
+        headers = {}
+        if auth_token:
+            headers["Authorization"] = f"Bearer {auth_token}"
+        
+        # Add role filter for admin users
+        params = {'role': 'admin'}
+        
+        try:
+            response = AuthServiceClient._make_request(url, headers, method='GET')
+            if response.status_code == 200:
+                users_data = response.json()
+                # Handle both list and paginated response formats
+                if isinstance(users_data, dict) and 'results' in users_data:
+                    return users_data['results']
+                elif isinstance(users_data, list):
+                    return users_data
+                else:
+                    return []
+            else:
+                print(f"Failed to get admin users: {response.status_code} - {response.text}")
+                return []
+        except Exception as e:
+            print(f"Error fetching admin users: {e}")
+            return []
+
