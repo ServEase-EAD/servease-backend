@@ -29,5 +29,9 @@ RUN mkdir -p /app/staticfiles
 # Expose port
 EXPOSE 8006
 
-# Run the application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8006"]
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Run migrations, start Daphne and RabbitMQ consumer
+CMD ["/bin/bash", "/app/start.sh"]
