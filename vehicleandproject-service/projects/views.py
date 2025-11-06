@@ -101,11 +101,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if getattr(user, "user_role", None) == "admin":
             return queryset
 
-        # Employees can only see projects assigned to them
+        # Employees can see projects that have tasks assigned to them
         elif getattr(user, "user_role", None) == "employee":
             employee_id = getattr(user, 'id', None)
             if employee_id:
-                return queryset.filter(assigned_employee_id=employee_id)
+                # Get project IDs that have tasks assigned to this employee
+                from django.db.models import Q
+                return queryset.filter(tasks__assigned_employee_id=employee_id).distinct()
             return queryset.none()
 
         # Customers can only see their own projects (using customer_id from JWT token)
@@ -321,10 +323,11 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     lookup_field = 'task_id'
     
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['project', 'status', 'priority']
-    search_fields = ['title', 'description']
-    ordering_fields = ['created_at', 'due_date', 'priority']
+    # Temporarily disable filters to fix django-filters compatibility issue
+    # filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # filterset_fields = ['status', 'priority', 'assigned_employee_id']
+    # search_fields = ['title', 'description']
+    # ordering_fields = ['created_at', 'due_date', 'priority']
     ordering = ['-created_at']
     
     def get_serializer_class(self):
@@ -352,11 +355,11 @@ class TaskViewSet(viewsets.ModelViewSet):
         if getattr(user, "user_role", None) == "admin":
             return queryset
         
-        # Employees can see tasks for their assigned projects
+        # Employees can see tasks assigned to them directly
         elif getattr(user, "user_role", None) == "employee":
             employee_id = getattr(user, 'id', None)
             if employee_id:
-                return queryset.filter(project__assigned_employee_id=employee_id)
+                return queryset.filter(assigned_employee_id=employee_id)
             return queryset.none()
         
         # Customers can see tasks for their projects

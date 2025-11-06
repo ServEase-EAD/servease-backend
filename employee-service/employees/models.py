@@ -13,12 +13,7 @@ class Employee(models.Model):
     date_of_birth = models.DateField(blank=True, null=True)
 
     # Employment Information
-    employee_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
-    role = models.CharField(max_length=100, blank=True, null=True)
-    department = models.CharField(max_length=100, blank=True, null=True)
-    joining_date = models.DateField(blank=True, null=True)
-    employment_type = models.CharField(max_length=20, blank=True, null=True)
-    supervisor = models.CharField(max_length=100, blank=True, null=True)
+    # Note: Employment details are managed through admin/HR system
 
     # Address Information
     address_line1 = models.CharField(max_length=255, blank=True, null=True)
@@ -27,10 +22,7 @@ class Employee(models.Model):
     postal_code = models.CharField(max_length=20, blank=True, null=True)
 
     # System Info
-    status = models.CharField(max_length=20, default="Active")
-    access_role = models.CharField(max_length=50, default="Employee")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    # Note: System information is managed internally
 
     # Other Details
     specialization = models.CharField(max_length=100, blank=True, null=True)
