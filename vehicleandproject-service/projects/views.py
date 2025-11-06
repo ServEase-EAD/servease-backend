@@ -103,7 +103,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter queryset based on user permissions"""
         user = self.request.user
-        queryset = Project.objects.all()
+        # Optimize queryset with select_related for vehicle and prefetch_related for tasks
+        queryset = Project.objects.select_related('vehicle').prefetch_related('tasks')
 
         # Admins can see all projects
         if getattr(user, "user_role", None) == "admin":
@@ -238,7 +239,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         # ongoing cannot edit and pending can be edit by customer
         partial = kwargs.pop('partial', False)
-        instance = self.get_object()
         serializer = self.get_serializer(
             instance, data=request.data, partial=partial)
         if serializer.is_valid():
@@ -248,7 +248,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 {
                     'message': 'Project updated successfully',
                     'data': response_serializer.data
-                }
+                },
+                status=status.HTTP_200_OK
             )
         return Response(
             {
