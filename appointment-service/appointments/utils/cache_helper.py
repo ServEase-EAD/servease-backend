@@ -17,13 +17,24 @@ def get_customer_cached(customer_id, auth_token=None):
     cache_key = f"customer_{customer_id}"
     customer_data = cache.get(cache_key)
     
+    # Check if we've already cached a 404 for this customer
+    not_found_key = f"customer_404_{customer_id}"
+    if cache.get(not_found_key):
+        return {'full_name': 'Unknown Customer', 'email': ''}
+    
     if customer_data is None:
         try:
             customer_data = CustomerServiceClient.validate_customer(customer_id, auth_token)
             cache.set(cache_key, customer_data, CACHE_TIMEOUT)
         except Exception as e:
-            print(f"Failed to fetch customer: {e}")
-            return {'full_name': 'Unknown', 'email': ''}
+            error_msg = str(e)
+            print(f"Failed to fetch customer: {error_msg}")
+            
+            # If customer not found, cache the 404 to avoid repeated requests
+            if 'Customer not found' in error_msg or '404' in error_msg:
+                cache.set(not_found_key, True, CACHE_TIMEOUT * 2)  # Cache 404s longer
+            
+            return {'full_name': 'Unknown Customer', 'email': ''}
     
     return customer_data
 
@@ -54,13 +65,20 @@ def get_employee_cached(employee_id, auth_token=None):
     cache_key = f"employee_{employee_id}"
     employee_data = cache.get(cache_key)
     
+    print(f"[EMPLOYEE CACHE] Looking up employee_id: {employee_id}")
+    print(f"[EMPLOYEE CACHE] Auth token present: {bool(auth_token)}")
+    print(f"[EMPLOYEE CACHE] Cached data: {employee_data}")
+    
     if employee_data is None:
         try:
+            print(f"[EMPLOYEE CACHE] Fetching from service...")
             employee_data = EmployeeServiceClient.get_employee(employee_id, auth_token)
+            print(f"[EMPLOYEE CACHE] Service returned: {employee_data}")
             if employee_data:
                 cache.set(cache_key, employee_data, CACHE_TIMEOUT)
+                print(f"[EMPLOYEE CACHE] Cached employee data")
         except Exception as e:
-            print(f"Failed to fetch employee: {e}")
+            print(f"[EMPLOYEE CACHE] Failed to fetch employee: {e}")
             return {'full_name': 'Unassigned'}
     
     return employee_data or {'full_name': 'Unassigned'}

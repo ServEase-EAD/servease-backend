@@ -170,19 +170,19 @@ def publish_bulk_notifications(notifications: list) -> int:
 
 
 # Convenience functions for common notification types
-def notify_appointment_created(user_id: int, appointment_details: Dict[str, Any]) -> bool:
-    """Send appointment creation notification"""
+def notify_project_created(user_id: str, project_details: Dict[str, Any]) -> bool:
+    """Send project creation notification"""
     return publish_notification(
         recipient_user_id=user_id,
-        message=f"Your appointment is scheduled for {appointment_details.get('date', 'TBD')} at {appointment_details.get('time', 'TBD')}",
-        title="Appointment Confirmed",
+        message=f"New project '{project_details.get('title', 'Untitled')}' has been created and requires approval.",
+        title="New Project Created",
         priority="high",
-        notification_type="APPOINTMENT",
-        metadata=appointment_details
+        notification_type="PROJECT",
+        metadata=project_details
     )
 
 
-def notify_vehicle_status_changed(user_id: int, vehicle_id: str, new_status: str) -> bool:
+def notify_vehicle_status_changed(user_id: str, vehicle_id: str, new_status: str) -> bool:
     """Send vehicle status change notification"""
     return publish_notification(
         recipient_user_id=user_id,

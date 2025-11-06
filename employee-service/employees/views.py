@@ -68,12 +68,12 @@ class ChangePasswordView(generics.GenericAPIView):
 
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.select_related('user').all()
     serializer_class = EmployeeProfileSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Employee.objects.all()
+        queryset = Employee.objects.select_related('user').all()
         specialization = self.request.query_params.get("specialization", None)
         is_available = self.request.query_params.get("is_available", None)
 
@@ -86,7 +86,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
 
 
 class EmployeeRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.select_related('user').all()
     serializer_class = EmployeeProfileSerializer
     permission_classes = [IsAuthenticated, IsEmployeeOwnerOrAdmin]
 

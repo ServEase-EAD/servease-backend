@@ -92,6 +92,9 @@ class CustomJWTAuthentication(JWTAuthentication):
                     else:
                         print(f"DEBUG JWT: Found existing Employee profile with id {user_id_from_token}")
             
+            # Attach role to user object for permission checks
+            user.role = user_role
+            
             return user
             
         except KeyError as e:
