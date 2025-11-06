@@ -79,7 +79,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if self.action in ['create']:
             permission_classes = [IsAuthenticated, IsCustomer]
         elif self.action in ['update', 'partial_update']:
-            permission_classes = [IsAuthenticated, IsCustomer]
+            # Allow customers, employees, and admins to update projects
+            permission_classes = [IsAuthenticated]
         elif self.action in ['destroy']:
             permission_classes = [IsAuthenticated]
         elif self.action in ['list', 'retrieve']:
@@ -323,6 +324,9 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     lookup_field = 'task_id'
     
+    # Temporarily disabled due to django-filters compatibility issue
+    # filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # filterset_fields = ['project', 'status', 'priority']
     # Temporarily disable filters to fix django-filters compatibility issue
     # filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     # filterset_fields = ['status', 'priority', 'assigned_employee_id']

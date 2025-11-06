@@ -6,6 +6,9 @@ from .views import ProjectViewSet, TaskViewSet
 project_router = DefaultRouter()
 project_router.register(r'', ProjectViewSet, basename='project')
 
+# Create a separate router for tasks
+tasks_router = DefaultRouter()
+tasks_router.register(r'', TaskViewSet, basename='task')  # Empty string, will be prefixed by 'tasks/' in urlpatterns
 task_router = DefaultRouter()
 task_router.register(r'', TaskViewSet, basename='task')
 
@@ -15,6 +18,11 @@ app_name = 'projects'
 uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
 urlpatterns = [
+    # Include tasks router URLs FIRST - tasks will be at /api/v1/projects/tasks/
+    # This must come before the project router to avoid 'tasks' being interpreted as a project_id
+    path('tasks/', include(tasks_router.urls)),
+    # Include project router URLs
+    path('', include(router.urls)),
     # Tasks endpoints - put these first to avoid conflicts
     path('tasks/', include(task_router.urls)),
     

@@ -115,7 +115,10 @@ class ProjectUpdateSerializer(BaseProjectSerializer):
         fields = [
             'title',
             'description',
-            'expected_completion_date'
+            'expected_completion_date',
+            'status',
+            'approval_status',
+            'assigned_employee_id'
         ]
     
     def validate_status(self, value):
