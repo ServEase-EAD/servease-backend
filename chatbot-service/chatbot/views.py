@@ -12,7 +12,7 @@ from .serializers import (
     ChatRequestSerializer,
     ChatResponseSerializer
 )
-from .openrouter_client import OpenRouterClient
+from .gemini_client import GeminiClient
 
 
 class ChatbotViewSet(viewsets.ViewSet):
@@ -23,7 +23,7 @@ class ChatbotViewSet(viewsets.ViewSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.openrouter_client = OpenRouterClient()
+        self.gemini_client = GeminiClient()
 
     @action(detail=False, methods=['post'], url_path='chat')
     def chat(self, request):
@@ -43,7 +43,8 @@ class ChatbotViewSet(viewsets.ViewSet):
 
         user_message = serializer.validated_data['message']
         session_id = serializer.validated_data.get('session_id')
-        model = serializer.validated_data.get('model', 'openai/gpt-4o')
+        model = serializer.validated_data.get(
+            'model', 'gemini-1.5-flash')  # Default to free Gemini
 
         # Get or create user ID (from JWT token when authentication is implemented)
         user_id = request.user.id if hasattr(
@@ -69,13 +70,12 @@ class ChatbotViewSet(viewsets.ViewSet):
         messages = self._get_conversation_history(session)
 
         try:
-            # Get AI response from OpenRouter
-            response_data = self.openrouter_client.create_chat_completion(
+            # Use Google Gemini API (default for local development)
+            response_data = self.gemini_client.create_chat_completion(
                 messages=messages,
                 model=model
             )
-
-            assistant_message = self.openrouter_client.extract_response_content(
+            assistant_message = self.gemini_client.extract_response_content(
                 response_data)
 
             # Save assistant message
@@ -154,7 +154,7 @@ class ChatbotViewSet(viewsets.ViewSet):
             max_messages: Maximum number of messages to include
 
         Returns:
-            list: List of message dictionaries for OpenRouter API
+            list: List of message dictionaries for the AI API
         """
         messages = ChatMessage.objects.filter(
             session=session).order_by('-timestamp')[:max_messages]
@@ -167,3 +167,8 @@ class ChatbotViewSet(viewsets.ViewSet):
             }
             for msg in messages
         ]
+
+    # Note: OpenRouter-specific credit checking has been removed.
+    # This service now uses Google Gemini by default. For quota/usage
+    # checks consult your Google Cloud console or implement a
+    # provider-specific status endpoint if needed.

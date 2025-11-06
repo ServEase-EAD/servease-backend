@@ -84,7 +84,7 @@ WSGI_APPLICATION = 'chatbot_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql', 
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('CHATBOT_DB_NAME', default='servease_chatbot'),
         'USER': config('DB_USER', default='postgres'),
         'PASSWORD': config('DB_PASSWORD', default=''),
@@ -155,7 +155,7 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# OpenRouter Configuration (add these to your .env file)
-# OPENROUTER_API_KEY=your_api_key_here
-# SITE_URL=http://localhost:800
+# Gemini / Google Generative API Configuration (add these to your .env file)
+# GEMINI_API_KEY=your_google_gemini_api_key_here
+# SITE_URL=http://localhost:8008
 # SITE_NAME=ServEase Chatbot
