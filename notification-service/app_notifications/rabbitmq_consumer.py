@@ -75,6 +75,10 @@ def process_notification_event(ch, method, properties, body):
             ch.basic_ack(delivery_tag=method.delivery_tag)
             return
         
+        # Close any stale database connections before creating new objects
+        from django.db import connection
+        connection.close()
+        
         # Create notification in database
         notification = Notification.objects.create(
             recipient_user_id=recipient_user_id,

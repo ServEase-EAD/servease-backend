@@ -46,39 +46,27 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return customer_data.get('full_name', 'Unknown')
     
     def get_vehicle_details(self, obj):
-        """Fetch full vehicle details from cache or API"""
+        """Fetch vehicle details and return as string for display"""
         auth_token = self.context.get('auth_token')
         vehicle_data = get_vehicle_cached(obj.vehicle_id, auth_token)
-        # Return full vehicle object with all fields
+        # Return formatted string instead of object
         if vehicle_data and isinstance(vehicle_data, dict):
-            return {
-                'vehicle_id': vehicle_data.get('id') or vehicle_data.get('vehicle_id'),
-                'make': vehicle_data.get('make', 'Unknown'),
-                'model': vehicle_data.get('model', 'Vehicle'),
-                'year': vehicle_data.get('year', 0),
-                'color': vehicle_data.get('color', 'Unknown'),
-                'vin': vehicle_data.get('vin', 'Unknown'),
-                'plate_number': vehicle_data.get('plate_number', 'Unknown'),
-                'display_name': f"{vehicle_data.get('year', '')} {vehicle_data.get('make', '')} {vehicle_data.get('model', '')}".strip() or 'Unknown Vehicle',
-                'age': calculate_vehicle_age(vehicle_data.get('year')),
-                'is_active': vehicle_data.get('is_active', True),
-                'created_at': vehicle_data.get('created_at', ''),
-                'updated_at': vehicle_data.get('updated_at', '')
-            }
-        return {
-            'vehicle_id': obj.vehicle_id,
-            'make': 'Unknown',
-            'model': 'Vehicle',
-            'year': 0,
-            'color': 'Unknown',
-            'vin': 'Unknown',
-            'plate_number': 'Unknown',
-            'display_name': 'Unknown Vehicle',
-            'age': 0,
-            'is_active': True,
-            'created_at': '',
-            'updated_at': ''
-        }
+            year = vehicle_data.get('year', '')
+            make = vehicle_data.get('make', 'Unknown')
+            model = vehicle_data.get('model', 'Vehicle')
+            plate = vehicle_data.get('plate_number', '')
+            
+            # Create display string: "2020 Toyota Camry (ABC123)"
+            display_parts = []
+            if year:
+                display_parts.append(str(year))
+            display_parts.extend([make, model])
+            display_name = ' '.join(filter(None, display_parts))
+            
+            if plate:
+                return f"{display_name} ({plate})"
+            return display_name or 'Unknown Vehicle'
+        return 'Unknown Vehicle'
     
     def get_employee_name(self, obj):
         """Fetch employee name from cache or API"""
@@ -134,39 +122,27 @@ class AppointmentListSerializer(serializers.ModelSerializer):
         return customer_data.get('full_name', 'Unknown')
     
     def get_vehicle_details(self, obj):
-        """Fetch full vehicle details for list view"""
+        """Fetch vehicle details and return as string for display"""
         auth_token = self.context.get('auth_token')
         vehicle_data = get_vehicle_cached(obj.vehicle_id, auth_token)
-        # Return full vehicle object with all fields
+        # Return formatted string instead of object
         if vehicle_data and isinstance(vehicle_data, dict):
-            return {
-                'vehicle_id': vehicle_data.get('id') or vehicle_data.get('vehicle_id'),
-                'make': vehicle_data.get('make', 'Unknown'),
-                'model': vehicle_data.get('model', 'Vehicle'),
-                'year': vehicle_data.get('year', 0),
-                'color': vehicle_data.get('color', 'Unknown'),
-                'vin': vehicle_data.get('vin', 'Unknown'),
-                'plate_number': vehicle_data.get('plate_number', 'Unknown'),
-                'display_name': f"{vehicle_data.get('year', '')} {vehicle_data.get('make', '')} {vehicle_data.get('model', '')}".strip() or 'Unknown Vehicle',
-                'age': calculate_vehicle_age(vehicle_data.get('year')),
-                'is_active': vehicle_data.get('is_active', True),
-                'created_at': vehicle_data.get('created_at', ''),
-                'updated_at': vehicle_data.get('updated_at', '')
-            }
-        return {
-            'vehicle_id': obj.vehicle_id,
-            'make': 'Unknown',
-            'model': 'Vehicle',
-            'year': 0,
-            'color': 'Unknown',
-            'vin': 'Unknown',
-            'plate_number': 'Unknown',
-            'display_name': 'Unknown Vehicle',
-            'age': 0,
-            'is_active': True,
-            'created_at': '',
-            'updated_at': ''
-        }
+            year = vehicle_data.get('year', '')
+            make = vehicle_data.get('make', 'Unknown')
+            model = vehicle_data.get('model', 'Vehicle')
+            plate = vehicle_data.get('plate_number', '')
+            
+            # Create display string: "2020 Toyota Camry (ABC123)"
+            display_parts = []
+            if year:
+                display_parts.append(str(year))
+            display_parts.extend([make, model])
+            display_name = ' '.join(filter(None, display_parts))
+            
+            if plate:
+                return f"{display_name} ({plate})"
+            return display_name or 'Unknown Vehicle'
+        return 'Unknown Vehicle'
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):
