@@ -134,8 +134,11 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Authentication Service URL (for user data)
+# Service URLs
 AUTH_SERVICE_URL = config('AUTH_SERVICE_URL', default='http://authentication-service:8001')
+VEHICLEPROJECT_SERVICE_URL = config('VEHICLEPROJECT_SERVICE_URL', default='http://vehicleandproject-service:8004')
+APPOINTMENT_SERVICE_URL = config('APPOINTMENT_SERVICE_URL', default='http://appointment-service:8005')
+EMPLOYEE_SERVICE_URL = config('EMPLOYEE_SERVICE_URL', default='http://employee-service:8003')
 
 # Redis Configuration
 REDIS_HOST = config('REDIS_HOST', default='redis')
