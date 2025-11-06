@@ -70,7 +70,7 @@ Request body:
 {
   "message": "What is ServEase?",
   "session_id": "optional-session-id",
-  "model": "gemini-1.5-flash"
+  "model": "gemini-2.5-flash"
 }
 ```
 
@@ -125,7 +125,7 @@ Response:
 
 This service uses Google Gemini models by default for local development. Example models:
 
-- `gemini-1.5-flash` (recommended for general use)
+- `gemini-2.5-flash` (recommended for general use)
 - `gemini-1.5-pro`
 - `gemini-pro`
 

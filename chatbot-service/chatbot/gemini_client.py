@@ -9,7 +9,7 @@ class GeminiClient:
     def __init__(self):
         self.api_key = config('GEMINI_API_KEY', default='')
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
-        self.model = "gemini-1.5-flash"  # Free model
+        self.model = "gemini-2.5-flash"  # Free model
 
     def create_chat_completion(self, messages, model=None):
         """
@@ -17,7 +17,7 @@ class GeminiClient:
 
         Args:
             messages: List of message dictionaries with 'role' and 'content'
-            model: AI model to use (default: gemini-1.5-flash)
+            model: AI model to use (default: gemini-2.5-flash)
 
         Returns:
             dict: Response formatted in a standard shape for compatibility with the views
@@ -45,6 +45,18 @@ class GeminiClient:
                 data=json.dumps(payload),
                 timeout=30
             )
+
+            # If error, try to get detailed error message
+            if response.status_code != 200:
+                try:
+                    error_data = response.json()
+                    error_message = error_data.get('error', {}).get(
+                        'message', str(response.text))
+                    raise Exception(
+                        f"Gemini API error ({response.status_code}): {error_message}")
+                except json.JSONDecodeError:
+                    response.raise_for_status()
+
             response.raise_for_status()
             gemini_response = response.json()
 

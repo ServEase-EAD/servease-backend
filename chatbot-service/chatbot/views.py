@@ -1,7 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 import uuid
 
@@ -13,13 +12,17 @@ from .serializers import (
     ChatResponseSerializer
 )
 from .gemini_client import GeminiClient
+from .permissions import IsAuthenticated, IsOwner
 
 
 class ChatbotViewSet(viewsets.ViewSet):
     """
-    ViewSet for handling chatbot operations
+    ViewSet for handling chatbot operations with JWT authentication.
+    All authenticated users (customer, employee, admin) can use the chatbot.
+    Users can only access their own sessions.
     """
-    # permission_classes = [IsAuthenticated]  # Uncomment when authentication is ready
+    permission_classes = [
+        IsAuthenticated]  # Require authentication for all actions
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,13 +31,17 @@ class ChatbotViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='chat')
     def chat(self, request):
         """
-        Handle chat messages and get AI responses
+        Handle chat messages and get AI responses.
+        Authenticated users can only access their own sessions.
 
         POST /api/v1/chatbot/chat/
+        Headers: {
+            "Authorization": "Bearer <jwt_token>"
+        }
         Body: {
             "message": "Your question here",
             "session_id": "optional-session-id",
-            "model": "openai/gpt-4o"  # optional
+            "model": "gemini-2.5-flash"  # optional - valid models: gemini-2.5-flash, gemini-2.5-pro
         }
         """
         serializer = ChatRequestSerializer(data=request.data)
@@ -44,16 +51,33 @@ class ChatbotViewSet(viewsets.ViewSet):
         user_message = serializer.validated_data['message']
         session_id = serializer.validated_data.get('session_id')
         model = serializer.validated_data.get(
-            'model', 'gemini-1.5-flash')  # Default to free Gemini
+            'model', 'gemini-2.5-flash')  # Default to free Gemini
 
-        # Get or create user ID (from JWT token when authentication is implemented)
-        user_id = request.user.id if hasattr(
-            request.user, 'id') and request.user.is_authenticated else 1
+        # Validate model is a Gemini model
+        if not model.startswith('gemini'):
+            return Response({
+                'error': 'Invalid model',
+                'message': f'Only Gemini models are supported. Use models like: gemini-2.5-flash, gemini-1.5-pro, gemini-2.0-flash-exp'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get authenticated user ID from JWT token
+        user_id = request.user.id
 
         # Get or create chat session
         if session_id:
-            session = get_object_or_404(ChatSession, session_id=session_id)
+            # Ensure the session belongs to the authenticated user
+            try:
+                session = ChatSession.objects.get(
+                    session_id=session_id,
+                    user_id=user_id  # Only allow access to own sessions
+                )
+            except ChatSession.DoesNotExist:
+                return Response({
+                    'error': 'Session not found or access denied',
+                    'message': 'You can only access your own chat sessions'
+                }, status=status.HTTP_404_NOT_FOUND)
         else:
+            # Create new session for this user
             session = ChatSession.objects.create(
                 user_id=user_id,
                 session_id=str(uuid.uuid4())
@@ -101,49 +125,106 @@ class ChatbotViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='sessions')
     def list_sessions(self, request):
         """
-        List all chat sessions for the current user
+        List all chat sessions for the authenticated user.
+        Each user can only see their own sessions.
 
         GET /api/v1/chatbot/sessions/
+        Headers: {
+            "Authorization": "Bearer <jwt_token>"
+        }
         """
-        user_id = request.user.id if hasattr(
-            request.user, 'id') and request.user.is_authenticated else 1
+        user_id = request.user.id
         sessions = ChatSession.objects.filter(user_id=user_id, is_active=True)
         serializer = ChatSessionSerializer(sessions, many=True)
-        return Response(serializer.data)
+        return Response({
+            'count': sessions.count(),
+            'results': serializer.data
+        })
 
     @action(detail=False, methods=['get'], url_path='session/(?P<session_id>[^/.]+)')
     def get_session(self, request, session_id=None):
         """
-        Get a specific chat session with all messages
+        Get a specific chat session with all messages.
+        Users can only access their own sessions.
 
         GET /api/v1/chatbot/session/{session_id}/
+        Headers: {
+            "Authorization": "Bearer <jwt_token>"
+        }
         """
-        session = get_object_or_404(ChatSession, session_id=session_id)
+        user_id = request.user.id
+        try:
+            session = ChatSession.objects.get(
+                session_id=session_id,
+                user_id=user_id  # Ensure ownership
+            )
+        except ChatSession.DoesNotExist:
+            return Response({
+                'error': 'Session not found or access denied',
+                'message': 'You can only access your own chat sessions'
+            }, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ChatSessionSerializer(session)
         return Response(serializer.data)
 
     @action(detail=False, methods=['delete'], url_path='session/(?P<session_id>[^/.]+)/delete')
     def delete_session(self, request, session_id=None):
         """
-        Delete (deactivate) a chat session
+        Delete (deactivate) a chat session.
+        Users can only delete their own sessions.
 
         DELETE /api/v1/chatbot/session/{session_id}/delete/
+        Headers: {
+            "Authorization": "Bearer <jwt_token>"
+        }
         """
-        session = get_object_or_404(ChatSession, session_id=session_id)
+        user_id = request.user.id
+        try:
+            session = ChatSession.objects.get(
+                session_id=session_id,
+                user_id=user_id  # Ensure ownership
+            )
+        except ChatSession.DoesNotExist:
+            return Response({
+                'error': 'Session not found or access denied',
+                'message': 'You can only delete your own chat sessions'
+            }, status=status.HTTP_404_NOT_FOUND)
+
         session.is_active = False
         session.save()
-        return Response({'message': 'Session deleted successfully'}, status=status.HTTP_200_OK)
+        return Response({
+            'message': 'Session deleted successfully',
+            'session_id': session.session_id
+        }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], url_path='session/(?P<session_id>[^/.]+)/clear')
     def clear_session(self, request, session_id=None):
         """
-        Clear all messages in a session
+        Clear all messages in a session.
+        Users can only clear their own sessions.
 
         POST /api/v1/chatbot/session/{session_id}/clear/
+        Headers: {
+            "Authorization": "Bearer <jwt_token>"
+        }
         """
-        session = get_object_or_404(ChatSession, session_id=session_id)
+        user_id = request.user.id
+        try:
+            session = ChatSession.objects.get(
+                session_id=session_id,
+                user_id=user_id  # Ensure ownership
+            )
+        except ChatSession.DoesNotExist:
+            return Response({
+                'error': 'Session not found or access denied',
+                'message': 'You can only clear your own chat sessions'
+            }, status=status.HTTP_404_NOT_FOUND)
+
         ChatMessage.objects.filter(session=session).delete()
-        return Response({'message': 'Session cleared successfully'}, status=status.HTTP_200_OK)
+        return Response({
+            'message': 'Session cleared successfully',
+            'session_id': session.session_id
+        }, status=status.HTTP_200_OK)
 
     def _get_conversation_history(self, session, max_messages=10):
         """
