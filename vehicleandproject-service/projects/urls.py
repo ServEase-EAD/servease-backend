@@ -1,44 +1,22 @@
-from django.urls import path, include, re_path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ProjectViewSet, TaskViewSet
 
-# Create separate routers to avoid UUID/tasks conflict
-project_router = DefaultRouter()
-project_router.register(r'', ProjectViewSet, basename='project')
+# Create router and register viewsets
+router = DefaultRouter()
+router.register(r'', ProjectViewSet, basename='project')  # Empty string since main URL already has 'projects/'
 
 # Create a separate router for tasks
 tasks_router = DefaultRouter()
-tasks_router.register(r'', TaskViewSet, basename='task')  # Empty string, will be prefixed by 'tasks/' in urlpatterns
-task_router = DefaultRouter()
-task_router.register(r'', TaskViewSet, basename='task')
+tasks_router.register(r'', TaskViewSet, basename='task')  # Use empty string for task routes
 
 app_name = 'projects'
 
-# UUID pattern for project IDs
-uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-
 urlpatterns = [
-    # Include tasks router URLs FIRST - tasks will be at /api/v1/projects/tasks/
-    # This must come before the project router to avoid 'tasks' being interpreted as a project_id
+    # Task routes under /tasks/ prefix - these need to come first to avoid conflicts
     path('tasks/', include(tasks_router.urls)),
-    # Include project router URLs
+    # Project routes - these are at the root level
     path('', include(router.urls)),
-    # Tasks endpoints - put these first to avoid conflicts
-    path('tasks/', include(task_router.urls)),
-    
-    # Project list and custom actions (non-UUID paths)
-    path('', ProjectViewSet.as_view({'get': 'list', 'post': 'create'}), name='project-list'),
-    path('by_vehicle/', ProjectViewSet.as_view({'get': 'by_vehicle'}), name='project-by-vehicle'),
-    path('customer_projects/', ProjectViewSet.as_view({'get': 'customer_projects'}), name='project-customer-projects'),
-    
-    # Project detail with specific UUID pattern
-    re_path(f'^(?P<project_id>{uuid_pattern})/$', 
-            ProjectViewSet.as_view({'get': 'retrieve', 'put': 'update', 
-                                   'patch': 'partial_update', 'delete': 'destroy'}),
-            name='project-detail'),
-    re_path(f'^(?P<project_id>{uuid_pattern})/change_status/$', 
-            ProjectViewSet.as_view({'post': 'change_status'}),
-            name='project-change-status'),
 ]
 
 # This generates the following URL patterns:

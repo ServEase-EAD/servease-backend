@@ -142,12 +142,6 @@ class Task(models.Model):
         help_text="Due date for the task"
     )
 
-    # Employee assignment
-    assigned_employee_id = models.UUIDField(
-        null=True,
-        blank=True,
-        help_text="ID of the employee assigned to this task",
-        db_index=True
     # Employee assignment - store only employee ID from employee service
     assigned_employee_id = models.UUIDField(
         null=True,
