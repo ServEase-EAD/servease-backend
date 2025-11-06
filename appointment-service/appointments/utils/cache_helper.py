@@ -17,13 +17,24 @@ def get_customer_cached(customer_id, auth_token=None):
     cache_key = f"customer_{customer_id}"
     customer_data = cache.get(cache_key)
     
+    # Check if we've already cached a 404 for this customer
+    not_found_key = f"customer_404_{customer_id}"
+    if cache.get(not_found_key):
+        return {'full_name': 'Unknown Customer', 'email': ''}
+    
     if customer_data is None:
         try:
             customer_data = CustomerServiceClient.validate_customer(customer_id, auth_token)
             cache.set(cache_key, customer_data, CACHE_TIMEOUT)
         except Exception as e:
-            print(f"Failed to fetch customer: {e}")
-            return {'full_name': 'Unknown', 'email': ''}
+            error_msg = str(e)
+            print(f"Failed to fetch customer: {error_msg}")
+            
+            # If customer not found, cache the 404 to avoid repeated requests
+            if 'Customer not found' in error_msg or '404' in error_msg:
+                cache.set(not_found_key, True, CACHE_TIMEOUT * 2)  # Cache 404s longer
+            
+            return {'full_name': 'Unknown Customer', 'email': ''}
     
     return customer_data
 

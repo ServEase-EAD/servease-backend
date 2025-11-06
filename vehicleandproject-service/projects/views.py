@@ -16,6 +16,9 @@ from django.db.models import Q
 from .models import Project, Task
 from vehicles.models import Vehicle
 from .permissions import IsCustomer, IsEmployee, IsAdmin
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .serializers import (
     ProjectSerializer,
@@ -27,6 +30,10 @@ from .serializers import (
     TaskCreateSerializer,
     TaskUpdateSerializer
 )
+
+# Import notification publisher for admin notifications
+from notification_publisher import publish_notification
+from .service_clients import AuthServiceClient
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -141,6 +148,65 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             # Save the project with customer_id and pending approval status
             project = serializer.save(customer_id=customer_id, approval_status='pending')
+            
+            # Send notifications to all admin users about the new project
+            try:
+                # Get admin users from authentication service
+                admin_users = AuthServiceClient.get_admin_users()
+                
+                # If we can't get admins from service, use the known admin users as fallback
+                if not admin_users or len(admin_users) == 0:
+                    logger.warning("Could not fetch admin users from auth service, using fallback list")
+                    # Known admin user IDs - only use valid UUIDs
+                    known_admin_users = [
+                        'ec0e0759-bdd9-4d43-b971-67b5f2a3cbb9',  # dana@gmail.com
+                    ]
+                    
+                    for admin_id in known_admin_users:
+                        success = publish_notification(
+                            recipient_user_id=admin_id,
+                            message=f"New project '{project.title}' has been created by customer and requires approval.",
+                            title="New Project Created",
+                            priority="high",
+                            notification_type="PROJECT",
+                            metadata={
+                                'project_id': str(project.project_id),
+                                'title': project.title,
+                                'customer_id': customer_id,
+                                'expected_completion_date': project.expected_completion_date.isoformat() if project.expected_completion_date else None
+                            }
+                        )
+                        if success:
+                            logger.info(f"✓ Project notification sent to admin {admin_id}")
+                        else:
+                            logger.error(f"✗ Failed to send project notification to admin {admin_id}")
+                else:
+                    # Use admin users from service
+                    for admin_user in admin_users:
+                        admin_id = admin_user.get('id')
+                        if admin_id:
+                            success = publish_notification(
+                                recipient_user_id=admin_id,
+                                message=f"New project '{project.title}' has been created by customer and requires approval.",
+                                title="New Project Created",
+                                priority="high",
+                                notification_type="PROJECT",
+                                metadata={
+                                    'project_id': str(project.project_id),
+                                    'title': project.title,
+                                    'customer_id': customer_id,
+                                    'expected_completion_date': project.expected_completion_date.isoformat() if project.expected_completion_date else None
+                                }
+                            )
+                            if success:
+                                logger.info(f"✓ Project notification sent to admin {admin_id}")
+                            else:
+                                logger.error(f"✗ Failed to send project notification to admin {admin_id}")
+                                
+            except Exception as e:
+                # Don't fail project creation if notifications fail
+                logger.error(f"Failed to send admin notifications for project creation: {e}")
+            
             # Return full project details after creation
             response_serializer = ProjectSerializer(project)
             return Response(
