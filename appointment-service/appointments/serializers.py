@@ -73,8 +73,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if obj.assigned_employee_id:
             auth_token = self.context.get('auth_token')
             employee_data = get_employee_cached(obj.assigned_employee_id, auth_token)
-            return employee_data.get('full_name', 'Unassigned')
-        return 'Unassigned'
+            # Return employee name, or first name, or a shortened ID as fallback
+            if employee_data:
+                return employee_data.get('full_name') or employee_data.get('first_name') or f"Employee ({str(obj.assigned_employee_id)[:8]}...)"
+            return f"Employee ({str(obj.assigned_employee_id)[:8]}...)"
+        return ''  # Return empty string instead of None
     
     def get_time_until_appointment(self, obj):
         """Calculate time until appointment"""
@@ -107,19 +110,31 @@ class AppointmentListSerializer(serializers.ModelSerializer):
     
     customer_name = serializers.SerializerMethodField()
     vehicle_details = serializers.SerializerMethodField()
+    employee_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Appointment
         fields = [
-            'id', 'customer_id', 'vehicle_id', 'appointment_type',
+            'id', 'customer_id', 'vehicle_id', 'assigned_employee_id', 'appointment_type',
             'scheduled_date', 'scheduled_time', 'status',
-            'customer_name', 'vehicle_details'
+            'customer_name', 'vehicle_details', 'employee_name'
         ]
     
     def get_customer_name(self, obj):
         auth_token = self.context.get('auth_token')
         customer_data = get_customer_cached(obj.customer_id, auth_token)
         return customer_data.get('full_name', 'Unknown')
+    
+    def get_employee_name(self, obj):
+        """Fetch employee name from cache or API"""
+        if obj.assigned_employee_id:
+            auth_token = self.context.get('auth_token')
+            employee_data = get_employee_cached(obj.assigned_employee_id, auth_token)
+            # Return employee name, or first name, or a shortened ID as fallback
+            if employee_data:
+                return employee_data.get('full_name') or employee_data.get('first_name') or f"Employee ({str(obj.assigned_employee_id)[:8]}...)"
+            return f"Employee ({str(obj.assigned_employee_id)[:8]}...)"
+        return ''  # Return empty string instead of None
     
     def get_vehicle_details(self, obj):
         """Fetch vehicle details and return as string for display"""

@@ -65,13 +65,20 @@ def get_employee_cached(employee_id, auth_token=None):
     cache_key = f"employee_{employee_id}"
     employee_data = cache.get(cache_key)
     
+    print(f"[EMPLOYEE CACHE] Looking up employee_id: {employee_id}")
+    print(f"[EMPLOYEE CACHE] Auth token present: {bool(auth_token)}")
+    print(f"[EMPLOYEE CACHE] Cached data: {employee_data}")
+    
     if employee_data is None:
         try:
+            print(f"[EMPLOYEE CACHE] Fetching from service...")
             employee_data = EmployeeServiceClient.get_employee(employee_id, auth_token)
+            print(f"[EMPLOYEE CACHE] Service returned: {employee_data}")
             if employee_data:
                 cache.set(cache_key, employee_data, CACHE_TIMEOUT)
+                print(f"[EMPLOYEE CACHE] Cached employee data")
         except Exception as e:
-            print(f"Failed to fetch employee: {e}")
+            print(f"[EMPLOYEE CACHE] Failed to fetch employee: {e}")
             return {'full_name': 'Unassigned'}
     
     return employee_data or {'full_name': 'Unassigned'}

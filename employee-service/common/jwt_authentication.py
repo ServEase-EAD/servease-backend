@@ -65,6 +65,9 @@ class CustomJWTAuthentication(JWTAuthentication):
                     employee, created = Employee.objects.get_or_create(user=user)
                     print(f"DEBUG JWT: Employee profile created: {created}")
             
+            # Attach role to user object for permission checks
+            user.role = user_role
+            
             return user
             
         except KeyError as e:

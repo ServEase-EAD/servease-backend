@@ -8,6 +8,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
+import sys
+import os
+
+# Add parent directory to path to import notification_publisher
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from notification_publisher import publish_notification
 
 from .permissions import IsAdminUser
 
@@ -254,6 +260,28 @@ def assign_employee_to_task(request):
             {'error': 'Failed to assign employee to task'},
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
+    
+    # Send notification to assigned employee
+    if response.status_code == 200:
+        try:
+            employee_id = request.data['employee_id']
+            task_type_display = 'project' if task_type == 'project_task' else 'appointment'
+            
+            publish_notification(
+                recipient_user_id=employee_id,
+                message=f'You have been assigned to a new {task_type_display} task',
+                title=f'New {task_type_display.capitalize()} Task Assignment',
+                notification_type='PROJECT' if task_type == 'project_task' else 'APPOINTMENT',
+                priority='high',
+                metadata={
+                    'task_id': task_id,
+                    'task_type': task_type
+                }
+            )
+            logger.info(f"Notification sent to employee {employee_id} for task assignment")
+        except Exception as notif_error:
+            logger.error(f"Failed to send notification to employee: {str(notif_error)}")
+            # Don't fail the assignment if notification fails
     
     return Response(
         {

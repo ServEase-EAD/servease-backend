@@ -144,7 +144,13 @@ class EmployeeServiceClient(ServiceClient):
         if auth_token:
             headers["Authorization"] = f"Bearer {auth_token}"
         
+        print(f"[EMPLOYEE SERVICE] Request URL: {url}")
+        print(f"[EMPLOYEE SERVICE] Headers: {headers}")
+        
         response = EmployeeServiceClient._make_request(url, headers)
+        
+        print(f"[EMPLOYEE SERVICE] Response status: {response.status_code}")
+        print(f"[EMPLOYEE SERVICE] Response body: {response.text[:500]}")
         
         if response.status_code == 200:
             return response.json()
