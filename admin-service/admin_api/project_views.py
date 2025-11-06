@@ -8,6 +8,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
+import sys
+import os
+
+# Add parent directory to path to import notification_publisher
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from notification_publisher import publish_notification
 
 from .permissions import IsAdminUser
 
@@ -215,6 +221,30 @@ def approve_project(request, project_id):
         try:
             created_task = task_response.json()
             created_tasks.append(created_task)
+            
+            # Send notification to assigned employee
+            try:
+                employee_id = task['assigned_employee_id']
+                project_title = request.data.get('project_title', 'a project')
+                
+                publish_notification(
+                    recipient_user_id=employee_id,
+                    message=f'You have been assigned to a new project task: {task["title"]}',
+                    title='New Project Task Assignment',
+                    notification_type='PROJECT',
+                    priority='high',
+                    metadata={
+                        'project_id': project_id,
+                        'task_id': created_task.get('id') or created_task.get('task_id'),
+                        'task_title': task['title'],
+                        'project_title': project_title
+                    }
+                )
+                logger.info(f"Notification sent to employee {employee_id} for task assignment")
+            except Exception as notif_error:
+                logger.error(f"Failed to send notification to employee: {str(notif_error)}")
+                # Don't fail the task creation if notification fails
+                
         except:
             # Rollback
             for created_task in created_tasks:
@@ -371,6 +401,28 @@ def assign_employee_to_project(request, project_id):
         )
     
     if response.status_code == 201:
+        # Send notification to assigned employee
+        try:
+            employee_id = request.data['assigned_employee_id']
+            task_title = request.data.get('task_title', 'Main Project Task')
+            
+            publish_notification(
+                recipient_user_id=employee_id,
+                message=f'You have been assigned to project task: {task_title}',
+                title='New Project Assignment',
+                notification_type='PROJECT',
+                priority='high',
+                metadata={
+                    'project_id': project_id,
+                    'task_title': task_title,
+                    'task_description': request.data.get('task_description', '')
+                }
+            )
+            logger.info(f"Notification sent to employee {employee_id} for project assignment")
+        except Exception as notif_error:
+            logger.error(f"Failed to send notification to employee: {str(notif_error)}")
+            # Don't fail the assignment if notification fails
+        
         return Response(
             {
                 'message': 'Employee assigned to project via task successfully',

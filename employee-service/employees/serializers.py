@@ -7,6 +7,8 @@ from .models import Employee, AssignedTask
 class EmployeeProfileSerializer(serializers.ModelSerializer):
     # Read-only fields from User model
     full_name = serializers.SerializerMethodField(read_only=True)
+    first_name = serializers.SerializerMethodField(read_only=True)
+    last_name = serializers.SerializerMethodField(read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
     last_login = serializers.DateTimeField(source="user.last_login", read_only=True)
     account_created = serializers.DateTimeField(source="user.date_joined", read_only=True)
@@ -17,6 +19,8 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "full_name",
+            "first_name",
+            "last_name",
             "email",
             "phone_number",
             "gender",
@@ -37,6 +41,8 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "full_name",
+            "first_name",
+            "last_name",
             "email",
             "account_created",
             "last_login",
@@ -49,10 +55,18 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
         ]
 
     def get_full_name(self, obj):
-        """Get full name from the related User model"""
         if obj.user:
-            return f"{obj.user.first_name} {obj.user.last_name}".strip()
-        return ""
+            first_name = obj.user.first_name or ''
+            last_name = obj.user.last_name or ''
+            full_name = f"{first_name} {last_name}".strip()
+            return full_name if full_name else obj.user.username
+        return 'Unknown'
+    
+    def get_first_name(self, obj):
+        return obj.user.first_name if obj.user else ''
+    
+    def get_last_name(self, obj):
+        return obj.user.last_name if obj.user else ''
 
     def update(self, instance, validated_data):
         """
