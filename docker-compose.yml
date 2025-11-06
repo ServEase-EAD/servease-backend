@@ -231,6 +231,7 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - SERVICE_NAME=chatbot-service
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       redis:
         condition: service_healthy

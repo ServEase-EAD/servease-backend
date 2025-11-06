@@ -1,10 +1,11 @@
 # Chatbot Service - ServEase
 
-AI-powered chatbot service using OpenRouter API integration.
+AI-powered chatbot service using Google Gemini (Generative Language API).
 
 ## Features
 
-- AI chat completions using OpenRouter
+-- AI chat completions using Google Gemini
+
 - Session-based conversation history
 - Multiple AI model support (GPT-4, Claude, etc.)
 - Conversation persistence in database
@@ -26,9 +27,11 @@ Copy `.env.example` to `.env` and fill in your values:
 cp .env.example .env
 ```
 
-Required environment variables:
+- Required environment variables:
 
-- `OPENROUTER_API_KEY` - Your OpenRouter API key (get it from https://openrouter.ai/)
+- `GEMINI_API_KEY` - Your Google Gemini / Generative Language API key
+- `CHATBOT_DB_NAME` - Database name
+- `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` - Database credentials
 - `CHATBOT_DB_NAME` - Database name
 - `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` - Database credentials
 
@@ -48,14 +51,14 @@ python manage.py createsuperuser
 ### 5. Start the Server
 
 ```bash
-python manage.py runserver 8007
+python manage.py runserver 8008
 ```
 
 ## API Endpoints
 
 ### Base URL
 
-`http://localhost:8007/api/v1/chatbot/`
+`http://localhost:8008/api/v1/chatbot/`
 
 ### 1. Send Chat Message
 
@@ -67,7 +70,7 @@ Request body:
 {
   "message": "What is ServEase?",
   "session_id": "optional-session-id",
-  "model": "openai/gpt-4o"
+  "model": "gemini-2.5-flash"
 }
 ```
 
@@ -120,16 +123,13 @@ Response:
 
 ## Supported AI Models
 
-You can specify any OpenRouter-supported model:
+This service uses Google Gemini models by default for local development. Example models:
 
-- `openai/gpt-4o` (default)
-- `openai/gpt-4-turbo`
-- `anthropic/claude-3-opus`
-- `anthropic/claude-3-sonnet`
-- `google/gemini-pro`
-- `meta-llama/llama-3-70b-instruct`
+- `gemini-2.5-flash` (recommended for general use)
+- `gemini-1.5-pro`
+- `gemini-pro`
 
-See [OpenRouter Models](https://openrouter.ai/models) for full list.
+See Google Cloud Generative AI docs for available models and usage guidance.
 
 ## Usage Example
 
@@ -216,8 +216,8 @@ This service can be integrated with:
 
 ### "Invalid API Key" error
 
-- Check your `OPENROUTER_API_KEY` in `.env`
-- Verify your API key is active on OpenRouter
+- Check your `GEMINI_API_KEY` in `.env`
+- Verify your API key is active in Google Cloud Console and the Generative AI API is enabled
 
 ### Database connection errors
 

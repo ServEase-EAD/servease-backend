@@ -32,13 +32,13 @@ pip install requests==2.31.0
 cp .env.example .env
 ```
 
-Then edit `.env` and add your OpenRouter API key:
+Then edit `.env` and add your Google Gemini API key:
 
 ```env
-OPENROUTER_API_KEY=your_actual_api_key_here
+GEMINI_API_KEY=your_actual_google_gemini_api_key_here
 ```
 
-Get your API key from: https://openrouter.ai/
+Get your API key from the Google Cloud Console and enable the Generative AI API.
 
 ### 4. Run migrations
 
@@ -56,7 +56,7 @@ python manage.py createsuperuser
 ### 6. Start the server
 
 ```bash
-python manage.py runserver 8007
+python manage.py runserver 8008
 ```
 
 ## Testing the API
@@ -64,7 +64,7 @@ python manage.py runserver 8007
 ### Test 1: Health Check
 
 ```bash
-curl http://localhost:8007/health/
+curl http://localhost:8008/health/
 ```
 
 Expected response:
@@ -76,7 +76,7 @@ Expected response:
 ### Test 2: Send a chat message
 
 ```bash
-curl -X POST http://localhost:8007/api/v1/chatbot/chat/ \
+curl -X POST http://localhost:8008/api/v1/chatbot/chat/ \
   -H "Content-Type: application/json" \
   -d "{\"message\": \"Hello, what can you do?\"}"
 ```
@@ -103,7 +103,7 @@ chatbot-service/
 │   ├── serializers.py         # DRF serializers
 │   ├── views.py               # API views
 │   ├── urls.py                # URL routing
-│   ├── openrouter_client.py   # OpenRouter API client
+│   ├── gemini_client.py   # Google Gemini API client
 │   └── migrations/            # Database migrations
 ├── chatbot_service/           # Project settings
 │   ├── __init__.py
@@ -169,7 +169,7 @@ DATABASES = {
 }
 ```
 
-### Issue: Port 8007 already in use
+### Issue: Port 8008 already in use
 
 **Solution:** Use a different port
 
@@ -179,7 +179,7 @@ python manage.py runserver 8008
 
 ## Development Tips
 
-1. **View admin panel**: After creating superuser, visit http://localhost:8007/admin/
+1. **View admin panel**: After creating superuser, visit http://localhost:8008/admin/
 
 2. **Check logs**: Django shows detailed error messages in the console
 
@@ -210,4 +210,4 @@ For issues or questions, refer to:
 
 - Django docs: https://docs.djangoproject.com/
 - DRF docs: https://www.django-rest-framework.org/
-- OpenRouter docs: https://openrouter.ai/docs
+  -- Google Generative AI docs: https://cloud.google.com/generative-ai

@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-h(t+59%n(o67c5((pw89+6ze^bwkl71!ccsbyf5j29pbu-b=w0'
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-%0cdw-(4gvq-c!ezk#r^f(p*&ny9uz&+tyg=!w7i_0k-8po*(!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     # Third-party apps
     'rest_framework',
     'corsheaders',
@@ -58,6 +57,26 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 ROOT_URLCONF = 'chatbot_service.urls'
 
@@ -84,13 +103,23 @@ WSGI_APPLICATION = 'chatbot_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql', 
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('CHATBOT_DB_NAME', default='servease_chatbot'),
         'USER': config('DB_USER', default='postgres'),
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default=''),
         'PORT': config('DB_PORT', default='5432'),
     }
+}
+
+# Service URLs for inter-service communication
+SERVICE_URLS = {
+    'CUSTOMER_SERVICE': config('CUSTOMER_SERVICE_URL', default='http://localhost:8002'),
+    'EMPLOYEE_SERVICE': config('EMPLOYEE_SERVICE_URL', default='http://localhost:8003'),
+    'VEHICLE_SERVICE': config('VEHICLE_SERVICE_URL', default='http://localhost:8004'),
+    'APPOINTMENT_SERVICE': config('APPOINTMENT_SERVICE_URL', default='http://localhost:8005'),
+    'NOTIFICATION_SERVICE': config('NOTIFICATION_SERVICE_URL', default='http://localhost:8006'),
+    'CHATBOT_SERVICE': config('CHATBOT_SERVICE_URL', default='http://localhost:8008'),
 }
 
 
@@ -143,6 +172,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'common.authentication.StatelessJWTAuthentication',
+    ),
 }
 
 # CORS Configuration
@@ -154,8 +186,29 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
-# OpenRouter Configuration (add these to your .env file)
-# OPENROUTER_API_KEY=your_api_key_here
-# SITE_URL=http://localhost:800
+SIMPLE_JWT = {
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "VERIFYING_KEY": "",
+    "USER_ID_FIELD": "user_id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# Gemini / Google Generative API Configuration (add these to your .env file)
+# GEMINI_API_KEY=your_google_gemini_api_key_here
+# SITE_URL=http://localhost:8008
 # SITE_NAME=ServEase Chatbot
