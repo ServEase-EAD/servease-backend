@@ -70,14 +70,6 @@ class Project(models.Model):
         help_text="Admin approval status for the project"
     )
 
-    # Employee assignment - store only employee ID from employee service
-    assigned_employee_id = models.UUIDField(
-        null=True,
-        blank=True,
-        help_text="Employee ID assigned to this project from employee-service",
-        db_index=True,
-    )
-
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -156,6 +148,12 @@ class Task(models.Model):
         blank=True,
         help_text="ID of the employee assigned to this task",
         db_index=True
+    # Employee assignment - store only employee ID from employee service
+    assigned_employee_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text="Employee ID assigned to this task from employee-service",
+        db_index=True,
     )
 
     # Audit fields

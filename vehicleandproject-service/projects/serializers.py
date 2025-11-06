@@ -141,7 +141,6 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'title',
             'status',
             'approval_status',
-            'assigned_employee_id',
             'description',
             'expected_completion_date',
             'tasks_count',
@@ -159,7 +158,7 @@ class ProjectApprovalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Project
-        fields = ['approval_status', 'assigned_employee_id', 'status']
+        fields = ['approval_status', 'status']
     
     def validate_approval_status(self, value):
         """Validate approval status"""
