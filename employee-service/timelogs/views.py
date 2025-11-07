@@ -95,7 +95,45 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         """Override create to set employee_id from JWT token and update daily totals"""
         employee_id = self.get_employee_id()
         if not employee_id:
-            raise ValueError("Unable to extract employee_id from token")
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": "Unable to extract employee_id from token"})
+        
+        # Check if there's already a task in progress for this employee
+        existing_in_progress = TimeLog.objects.filter(
+            employee_id=employee_id,
+            status='inprogress'
+        ).exists()
+        
+        if existing_in_progress and serializer.validated_data.get('status') == 'inprogress':
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                "error": "Cannot start a new task. Another task is already in progress. Please pause or complete the current task first."
+            })
+        
+        # Check if this specific task already has an active log (non-completed)
+        task_type = serializer.validated_data.get('task_type')
+        if task_type == 'appointment':
+            appointment_id = serializer.validated_data.get('appointment_id')
+            existing_log = TimeLog.objects.filter(
+                employee_id=employee_id,
+                task_type='appointment',
+                appointment_id=appointment_id,
+                status__in=['inprogress', 'paused']
+            ).exists()
+        else:  # project
+            project_id = serializer.validated_data.get('project_id')
+            existing_log = TimeLog.objects.filter(
+                employee_id=employee_id,
+                task_type='project',
+                project_id=project_id,
+                status__in=['inprogress', 'paused']
+            ).exists()
+        
+        if existing_log:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                "error": "This task already has an active time log. Resume the existing log or complete it first."
+            })
         
         instance = serializer.save(employee_id=employee_id)
         
@@ -109,7 +147,10 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         
         # Check if the timelog is completed - completed timelogs are immutable
         if instance.status == 'completed':
-            raise ValueError('Cannot edit a completed timelog. Completed timelogs are immutable.')
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                "error": "Cannot edit a completed timelog. Completed timelogs are immutable."
+            })
         
         instance = serializer.save()
         if instance.log_date:
@@ -248,7 +289,7 @@ class TimeLogViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def start(self, request, log_id=None):
-        """Start/resume a time log"""
+        """Start/resume a time log - resets start_time to track current session"""
         log = self.get_object()
         if log.status == 'completed':
             return Response(
@@ -256,15 +297,29 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        # Check if there's another task already in progress for this employee
+        employee_id = self.get_employee_id()
+        existing_in_progress = TimeLog.objects.filter(
+            employee_id=employee_id,
+            status='inprogress'
+        ).exclude(log_id=log_id).exists()
+        
+        if existing_in_progress:
+            return Response(
+                {'error': 'Cannot start this task. Another task is already in progress. Please pause or complete the current task first.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from django.utils import timezone
         log.status = 'inprogress'
-        log.start_time = datetime.now()
+        log.start_time = timezone.now()  # Reset start_time to track new session
         log.save()
         
         return Response(TimeLogSerializer(log).data)
     
     @action(detail=True, methods=['post'])
     def pause(self, request, log_id=None):
-        """Pause a time log"""
+        """Pause a time log - accumulates duration from current session"""
         log = self.get_object()
         
         if log.status == 'completed':
@@ -279,10 +334,13 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Calculate elapsed time in current session and add to accumulated duration
+        if log.start_time:
+            from django.utils import timezone
+            elapsed_seconds = int((timezone.now() - log.start_time).total_seconds())
+            log.duration_seconds += elapsed_seconds
+        
         log.status = 'paused'
-        if log.start_time and not log.end_time:
-            duration = (datetime.now() - log.start_time).total_seconds()
-            log.duration_seconds += int(duration)
         log.save()
         
         return Response(TimeLogSerializer(log).data)
@@ -297,11 +355,16 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        from django.utils import timezone
+        current_status = log.status  # Store current status before changing
+        log.end_time = timezone.now()
+        
+        # If currently in progress, add the current session time to duration
+        if current_status == 'inprogress' and log.start_time:
+            elapsed_seconds = int((log.end_time - log.start_time).total_seconds())
+            log.duration_seconds += elapsed_seconds
+        
         log.status = 'completed'
-        log.end_time = datetime.now()
-        if log.start_time:
-            duration = (log.end_time - log.start_time).total_seconds()
-            log.duration_seconds = int(duration)
         log.save()
         
         # Update daily totals after completion
