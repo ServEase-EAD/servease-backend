@@ -37,16 +37,19 @@ def forward_appointment_request(request, method, url, data=None, params=None):
     }
     
     try:
+        # Increased timeout from 10 to 30 seconds for data-heavy operations
+        request_timeout = 30
+        
         if method.upper() == 'GET':
-            response = requests.get(url, headers=headers, params=params, timeout=10)
+            response = requests.get(url, headers=headers, params=params, timeout=request_timeout)
         elif method.upper() == 'POST':
-            response = requests.post(url, headers=headers, json=data, timeout=10)
+            response = requests.post(url, headers=headers, json=data, timeout=request_timeout)
         elif method.upper() == 'PUT':
-            response = requests.put(url, headers=headers, json=data, timeout=10)
+            response = requests.put(url, headers=headers, json=data, timeout=request_timeout)
         elif method.upper() == 'PATCH':
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
+            response = requests.patch(url, headers=headers, json=data, timeout=request_timeout)
         elif method.upper() == 'DELETE':
-            response = requests.delete(url, headers=headers, timeout=10)
+            response = requests.delete(url, headers=headers, timeout=request_timeout)
         else:
             return None
         
