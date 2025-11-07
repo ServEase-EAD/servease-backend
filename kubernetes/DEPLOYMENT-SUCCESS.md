@@ -7,24 +7,26 @@
 ## 📊 Deployment Summary
 
 ### Infrastructure Services
-| Service | Status | Pods | Port |
-|---------|--------|------|------|
-| Redis | ✅ Running | 1/1 | 6379 |
-| RabbitMQ | ✅ Running | 1/1 | 5672, 15672 |
-| PgAdmin | ✅ Running | 1/1 | 80 |
-| Nginx (API Gateway) | ✅ Running | 2/2 | 80 |
+
+| Service             | Status     | Pods | Port        |
+| ------------------- | ---------- | ---- | ----------- |
+| Redis               | ✅ Running | 1/1  | 6379        |
+| RabbitMQ            | ✅ Running | 1/1  | 5672, 15672 |
+| PgAdmin             | ✅ Running | 1/1  | 80          |
+| Nginx (API Gateway) | ✅ Running | 2/2  | 80          |
 
 ### Microservices
-| Service | Status | Pods | Port | Health Check |
-|---------|--------|------|------|--------------|
-| Authentication Service | ✅ Running | 2/2 | 8001 | ✅ Healthy |
-| Appointment Service | ✅ Running | 2/2 | 8005 | ✅ Healthy |
-| Employee Service | ✅ Running | 2/2 | 8003 | ✅ Healthy |
-| Vehicle & Project Service | ✅ Running | 2/2 | 8004 | ✅ Healthy |
-| Customer Service | ⚠️ Restarting | 2/3 | 8002 | - |
-| Admin Service | ⚠️ Restarting | 3/3 | 8007 | - |
-| Chatbot Service | ⚠️ Restarting | 3/3 | 8008 | - |
-| Notification Service | ⚠️ CrashLoop | 3/3 | 8006 | ❌ |
+
+| Service                   | Status        | Pods | Port | Health Check |
+| ------------------------- | ------------- | ---- | ---- | ------------ |
+| Authentication Service    | ✅ Running    | 2/2  | 8001 | ✅ Healthy   |
+| Appointment Service       | ✅ Running    | 2/2  | 8005 | ✅ Healthy   |
+| Employee Service          | ✅ Running    | 2/2  | 8003 | ✅ Healthy   |
+| Vehicle & Project Service | ✅ Running    | 2/2  | 8004 | ✅ Healthy   |
+| Customer Service          | ⚠️ Restarting | 2/3  | 8002 | -            |
+| Admin Service             | ⚠️ Restarting | 3/3  | 8007 | -            |
+| Chatbot Service           | ⚠️ Restarting | 3/3  | 8008 | -            |
+| Notification Service      | ⚠️ CrashLoop  | 3/3  | 8006 | ❌           |
 
 **Note:** Services marked as "Restarting" are experiencing startup issues but the core system is functional.
 
@@ -36,6 +38,7 @@
 **Version:** PostgreSQL 16.6
 
 ### Databases Created:
+
 - servease_authentication
 - servease_customers
 - servease_employees
@@ -48,6 +51,7 @@
 ## 🔗 Access Points
 
 ### Via Port Forwarding:
+
 ```powershell
 # API Gateway (Nginx)
 kubectl port-forward svc/nginx-service 8080:80 -n servease
@@ -65,6 +69,7 @@ kubectl port-forward svc/rabbitmq-service 15672:15672 -n servease
 ```
 
 ### API Endpoints (via Nginx):
+
 - **Health Check:** `http://localhost:8080/health` ✅ Returns 200 OK
 - **Authentication:** `http://localhost:8080/api/auth/health/` ✅ Returns {"status": "healthy"}
 - **Employees:** `http://localhost:8080/api/employees/`
@@ -120,12 +125,12 @@ kubectl apply -f kubernetes/ingress.yaml
 
 ## 🎯 Project Requirements Status
 
-| Requirement | Status |
-|-------------|--------|
-| ✅ Dockerize Backend | Complete - All 8 services have Dockerfiles |
-| ✅ Docker Compose | Complete - Full orchestration with 11 services |
-| ✅ Kubernetes YAML | Complete - 20+ manifest files created |
-| ✅ Kubernetes Deployment | **DEPLOYED & RUNNING** |
+| Requirement              | Status                                         |
+| ------------------------ | ---------------------------------------------- |
+| ✅ Dockerize Backend     | Complete - All 8 services have Dockerfiles     |
+| ✅ Docker Compose        | Complete - Full orchestration with 11 services |
+| ✅ Kubernetes YAML       | Complete - 20+ manifest files created          |
+| ✅ Kubernetes Deployment | **DEPLOYED & RUNNING**                         |
 
 ## 📝 Notes
 
