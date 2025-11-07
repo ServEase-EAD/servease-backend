@@ -1,0 +1,99 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: servease-ingress
+  namespace: servease
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: servease.local  # Change this to your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80
+      - path: /api/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: authentication-service
+            port:
+              number: 8001
+      - path: /api/customers
+        pathType: Prefix
+        backend:
+          service:
+            name: customer-service
+            port:
+              number: 8002
+      - path: /api/employees
+        pathType: Prefix
+        backend:
+          service:
+            name: employee-service
+            port:
+              number: 8003
+      - path: /api/vehicles
+        pathType: Prefix
+        backend:
+          service:
+            name: vehicleandproject-service
+            port:
+              number: 8004
+      - path: /api/projects
+        pathType: Prefix
+        backend:
+          service:
+            name: vehicleandproject-service
+            port:
+              number: 8004
+      - path: /api/appointments
+        pathType: Prefix
+        backend:
+          service:
+            name: appointment-service
+            port:
+              number: 8005
+      - path: /api/notifications
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 8006
+      - path: /api/admin
+        pathType: Prefix
+        backend:
+          service:
+            name: admin-service
+            port:
+              number: 8007
+      - path: /api/chatbot
+        pathType: Prefix
+        backend:
+          service:
+            name: chatbot-service
+            port:
+              number: 8008
+      - path: /pgadmin
+        pathType: Prefix
+        backend:
+          service:
+            name: pgadmin-service
+            port:
+              number: 80
+      - path: /rabbitmq
+        pathType: Prefix
+        backend:
+          service:
+            name: rabbitmq-service
+            port:
+              number: 15672

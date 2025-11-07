@@ -1,0 +1,10 @@
+# Ignore secrets file with real credentials
+secrets.yaml
+
+# Ignore any local configuration overrides
+*.local.yaml
+local-*.yaml
+
+# Ignore backup files
+*.bak
+*.backup

@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatbot-service
+  namespace: servease
+  labels:
+    app: chatbot-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chatbot-service
+  template:
+    metadata:
+      labels:
+        app: chatbot-service
+    spec:
+      containers:
+      - name: chatbot-service
+        image: servease/chatbot-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8008
+          name: http
+        env:
+        - name: SERVICE_NAME
+          value: "chatbot-service"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: servease-config
+              key: DB_HOST
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: servease-secrets
+              key: CHATBOT_DB_NAME
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: servease-secrets
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: servease-secrets
+              key: DB_PASSWORD
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: servease-config
+              key: REDIS_HOST
+        - name: AUTH_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: servease-config
+              key: AUTH_SERVICE_URL
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: servease-secrets
+              key: GEMINI_API_KEY
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatbot-service
+  namespace: servease
+spec:
+  selector:
+    app: chatbot-service
+  ports:
+  - port: 8008
+    targetPort: 8008
+    protocol: TCP
+  type: ClusterIP

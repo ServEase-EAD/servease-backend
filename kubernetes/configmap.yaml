@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: servease-config
+  namespace: servease
+data:
+  # Redis Configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  
+  # RabbitMQ Configuration
+  RABBITMQ_HOST: "rabbitmq-service"
+  RABBITMQ_PORT: "5672"
+  
+  # Database Configuration (AWS RDS PostgreSQL)
+  DB_HOST: "servease.ctaauyqe60k6.eu-north-1.rds.amazonaws.com"
+  DB_PORT: "5432"
+  DB_ENGINE: "django.db.backends.postgresql"
+  
+  # Service URLs
+  AUTH_SERVICE_URL: "http://authentication-service:8001"
+  CUSTOMER_SERVICE_URL: "http://customer-service:8002"
+  EMPLOYEE_SERVICE_URL: "http://employee-service:8003"
+  VEHICLE_SERVICE_URL: "http://vehicleandproject-service:8004"
+  APPOINTMENT_SERVICE_URL: "http://appointment-service:8005"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:8006"
+  ADMIN_SERVICE_URL: "http://admin-service:8007"
+  CHATBOT_SERVICE_URL: "http://chatbot-service:8008"
