@@ -36,6 +36,7 @@ kubernetes/
 ## 🚀 Prerequisites
 
 1. **Kubernetes Cluster** (one of the following):
+
    - Minikube (local development)
    - Docker Desktop with Kubernetes
    - Kind (Kubernetes in Docker)
@@ -44,29 +45,32 @@ kubernetes/
 2. **kubectl** installed and configured
 
 3. **AWS RDS PostgreSQL** - The application uses an external AWS RDS database at:
+
    - Host: `servease.ctaauyqe60k6.eu-north-1.rds.amazonaws.com`
    - Ensure your Kubernetes cluster can access this RDS instance (configure security groups/network policies)
 
 4. **Docker images** built and pushed to a registry (or available locally):
+
    ```bash
    # Build all service images
    cd servease-backend
    docker-compose build
-   
+
    # Tag images for your registry (if using remote cluster)
    docker tag servease/authentication-service:latest your-registry/authentication-service:latest
    # Repeat for all services...
-   
+
    # Push to registry (if using remote cluster)
    docker push your-registry/authentication-service:latest
    # Repeat for all services...
    ```
 
-4. **Ingress Controller** (optional but recommended):
+5. **Ingress Controller** (optional but recommended):
+
    ```bash
    # For Minikube
    minikube addons enable ingress
-   
+
    # For other clusters
    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
    ```
@@ -82,6 +86,7 @@ nano kubernetes/secrets.yaml
 ```
 
 Update these values:
+
 - `DB_PASSWORD`: Strong PostgreSQL password
 - `GEMINI_API_KEY`: Your Google Gemini API key
 - `JWT_SECRET_KEY`: Strong JWT secret
@@ -97,6 +102,7 @@ image: your-registry/authentication-service:latest
 ```
 
 Replace `servease/` with your registry URL in:
+
 - `microservices/authentication-service.yaml`
 - `microservices/customer-service.yaml`
 - `microservices/employee-service.yaml`
@@ -113,10 +119,11 @@ Edit `ingress.yaml` to set your domain:
 ```yaml
 spec:
   rules:
-  - host: servease.local  # Change to your domain
+    - host: servease.local # Change to your domain
 ```
 
 For local testing, add to `/etc/hosts` (Linux/Mac) or `C:\Windows\System32\drivers\etc\hosts` (Windows):
+
 ```
 127.0.0.1 servease.local
 ```
