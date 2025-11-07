@@ -56,3 +56,50 @@ class IsCustomerOrReadOnly(BasePermission):
             hasattr(request.user, 'user_role') and
             request.user.user_role == 'customer'
         )
+
+
+class IsAdminOrEmployee(BasePermission):
+    """
+    Permission to allow admins and employees to access customer data.
+    Used for inter-service calls and admin operations.
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.user and
+            request.user.is_authenticated and
+            hasattr(request.user, 'user_role') and
+            request.user.user_role in ['admin', 'employee']
+        )
+
+
+class IsOwnerOrAdminOrEmployee(BasePermission):
+    """
+    Permission to allow customers to access their own profile,
+    or admins/employees to access any customer profile.
+    """
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+
+        if not hasattr(request.user, 'user_role'):
+            return False
+
+        # Allow admins and employees
+        if request.user.user_role in ['admin', 'employee']:
+            return True
+
+        # Allow customers
+        if request.user.user_role == 'customer':
+            return True
+
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        # Admins and employees can access any customer
+        if hasattr(request.user, 'user_role') and request.user.user_role in ['admin', 'employee']:
+            return True
+
+        # Customers can only access their own profile
+        return obj.user_id == request.user.user_id
