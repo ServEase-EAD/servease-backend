@@ -81,8 +81,7 @@ class VehicleCreateSerializer(VehicleSerializer):
             'year',
             'color',
             'vin',
-            'plate_number',
-            'customer_id',
+            'plate_number'
         ]
 
 class VehicleUpdateSerializer(VehicleSerializer):
@@ -108,12 +107,17 @@ class VehicleListSerializer(serializers.ModelSerializer):
         model = Vehicle
         fields = [
             'vehicle_id',
+            'customer_id',
+            'make',
+            'model',
+            'year',
             'display_name',
             'plate_number',
             'color',
             'vin',
             'is_active',
-            'created_at'
+            'created_at',
+            'updated_at'
         ]
     
     def get_display_name(self, obj):
