@@ -13,6 +13,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 from .models import Customer
 from .serializers import (
@@ -203,7 +205,8 @@ class CustomerViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    @method_decorator(csrf_exempt)
     def check_profile_exists(self, request):
         """
         POST /api/v1/customers/check_profile_exists/
