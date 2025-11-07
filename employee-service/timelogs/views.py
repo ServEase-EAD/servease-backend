@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta
+from django.utils import timezone
 from decimal import Decimal
 from .models import TimeLog, Shift, DailyTimeTotal
 from .serializers import (
@@ -326,6 +327,7 @@ class TimeLogViewSet(viewsets.ModelViewSet):
     def start(self, request, log_id=None):
         """Start/resume a time log - resets start_time to track current session"""
         log = self.get_object()
+        
         if log.status == 'completed':
             return Response(
                 {'error': 'Cannot restart a completed timelog. Completed timelogs are immutable.'},
@@ -352,7 +354,8 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         # duration_seconds is accumulated, do not reset
         log.save()
         
-        return Response(TimeLogSerializer(log).data)
+        serializer = TimeLogSerializer(log)
+        return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def pause(self, request, log_id=None):
@@ -380,12 +383,14 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         log.status = 'paused'
         log.save()
         
-        return Response(TimeLogSerializer(log).data)
+        serializer = TimeLogSerializer(log)
+        return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def complete(self, request, log_id=None):
         """Complete a time log - once completed, timelog becomes immutable"""
         log = self.get_object()
+        
         if log.status == 'completed':
             return Response(
                 {'error': 'Timelog is already completed'},
@@ -416,10 +421,11 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         if log.log_date:
             update_daily_total(log.employee_id, log.log_date)
         
+        serializer = TimeLogSerializer(log)
         return Response(
             {
                 'message': 'Timelog completed successfully. Note: Completed timelogs are immutable.',
-                'data': TimeLogSerializer(log).data
+                'data': serializer.data
             }
         )
 
@@ -509,10 +515,11 @@ class ShiftViewSet(viewsets.ModelViewSet):
         if active_shift:
             return Response({'error': 'Active shift already exists'}, status=400)
         
+        now = timezone.now()
         shift = Shift.objects.create(
             employee_id=employee_id,
-            shift_date=datetime.now().date(),
-            start_time=datetime.now(),
+            shift_date=now.date(),
+            start_time=now,
             is_active=True
         )
         
@@ -525,7 +532,7 @@ class ShiftViewSet(viewsets.ModelViewSet):
         if not shift.is_active:
             return Response({'error': 'Shift already ended'}, status=400)
         
-        shift.end_time = datetime.now()
+        shift.end_time = timezone.now()
         shift.is_active = False
         
         # Calculate total hours
