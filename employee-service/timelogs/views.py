@@ -346,8 +346,10 @@ class TimeLogViewSet(viewsets.ModelViewSet):
             )
         
         from django.utils import timezone
+        # Only set start_time and status, do not reset duration_seconds
         log.status = 'inprogress'
-        log.start_time = timezone.now()  # Reset start_time to track new session
+        log.start_time = timezone.now()
+        # duration_seconds is accumulated, do not reset
         log.save()
         
         return Response(TimeLogSerializer(log).data)
@@ -398,10 +400,9 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         if current_status == 'inprogress' and log.start_time:
             elapsed_seconds = int((log.end_time - log.start_time).total_seconds())
             log.duration_seconds += elapsed_seconds
-        
-        # If paused with 0 duration but has start_time, calculate total duration from start to now
-        # This handles edge cases where duration wasn't properly accumulated
-        if log.duration_seconds == 0 and log.start_time:
+        # If paused, keep accumulated duration_seconds (do not overwrite)
+        # Only set duration_seconds if it is zero and there was never a pause (edge case)
+        if log.duration_seconds == 0 and log.start_time and current_status != 'paused':
             total_seconds = int((log.end_time - log.start_time).total_seconds())
             log.duration_seconds = total_seconds
         
