@@ -8,6 +8,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
+import sys
+import os
+
+# Add parent directory to path to import notification_publisher
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from notification_publisher import publish_notification
 
 from .permissions import IsAdminUser
 
@@ -255,6 +261,28 @@ def assign_employee_to_task(request):
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
     
+    # Send notification to assigned employee
+    if response.status_code == 200:
+        try:
+            employee_id = request.data['employee_id']
+            task_type_display = 'project' if task_type == 'project_task' else 'appointment'
+            
+            publish_notification(
+                recipient_user_id=employee_id,
+                message=f'You have been assigned to a new {task_type_display} task',
+                title=f'New {task_type_display.capitalize()} Task Assignment',
+                notification_type='PROJECT' if task_type == 'project_task' else 'APPOINTMENT',
+                priority='high',
+                metadata={
+                    'task_id': task_id,
+                    'task_type': task_type
+                }
+            )
+            logger.info(f"Notification sent to employee {employee_id} for task assignment")
+        except Exception as notif_error:
+            logger.error(f"Failed to send notification to employee: {str(notif_error)}")
+            # Don't fail the assignment if notification fails
+    
     return Response(
         {
             'message': 'Employee assigned to task successfully',
@@ -331,38 +359,77 @@ def get_admin_dashboard_stats(request):
         - Employee utilization rate
         - Tasks overview
     """
-    dashboard_stats = {}
+    dashboard_stats = {
+        'total_vehicles': 0,
+        'total_projects': 0,
+        'pending_projects': 0,
+        'active_projects': 0,
+        'appointment_stats': {
+            'total_appointments': 0,
+            'pending_appointments': 0,
+            'confirmed_appointments': 0,
+            'completed_appointments': 0,
+        },
+        'total_employees': 0,
+    }
     
     # Get vehicle stats
-    vehicles_url = f"{VEHICLE_SERVICE_URL}/api/v1/vehicles/"
-    vehicles_response = forward_request(request, 'GET', vehicles_url)
-    if vehicles_response and vehicles_response.status_code == 200:
-        vehicles_data = vehicles_response.json()
-        dashboard_stats['total_vehicles'] = len(vehicles_data) if isinstance(vehicles_data, list) else 0
+    try:
+        vehicles_url = f"{VEHICLE_SERVICE_URL}/api/v1/vehicles/"
+        vehicles_response = forward_request(request, 'GET', vehicles_url)
+        if vehicles_response and vehicles_response.status_code == 200:
+            vehicles_data = vehicles_response.json()
+            dashboard_stats['total_vehicles'] = len(vehicles_data) if isinstance(vehicles_data, list) else 0
+            print(f"✓ Vehicles: {dashboard_stats['total_vehicles']}")
+        else:
+            print(f"✗ Vehicles request failed: {vehicles_response.status_code if vehicles_response else 'No response'}")
+    except Exception as e:
+        print(f"✗ Vehicles error: {str(e)}")
     
     # Get project stats
-    projects_url = f"{VEHICLE_SERVICE_URL}/api/v1/projects/"
-    projects_response = forward_request(request, 'GET', projects_url)
-    if projects_response and projects_response.status_code == 200:
-        projects_data = projects_response.json()
-        if isinstance(projects_data, list):
-            dashboard_stats['total_projects'] = len(projects_data)
-            dashboard_stats['pending_projects'] = len([p for p in projects_data if p.get('status') == 'pending'])
-            dashboard_stats['active_projects'] = len([p for p in projects_data if p.get('status') in ['in_progress', 'accepted']])
+    try:
+        projects_url = f"{VEHICLE_SERVICE_URL}/api/v1/projects/"
+        projects_response = forward_request(request, 'GET', projects_url)
+        if projects_response and projects_response.status_code == 200:
+            projects_data = projects_response.json()
+            if isinstance(projects_data, list):
+                dashboard_stats['total_projects'] = len(projects_data)
+                dashboard_stats['pending_projects'] = len([p for p in projects_data if p.get('status') == 'pending'])
+                dashboard_stats['active_projects'] = len([p for p in projects_data if p.get('status') in ['in_progress', 'accepted']])
+                print(f"✓ Projects - Total: {dashboard_stats['total_projects']}, Pending: {dashboard_stats['pending_projects']}, Active: {dashboard_stats['active_projects']}")
+            else:
+                print(f"✗ Projects data is not a list: {type(projects_data)}")
+        else:
+            print(f"✗ Projects request failed: {projects_response.status_code if projects_response else 'No response'}")
+    except Exception as e:
+        print(f"✗ Projects error: {str(e)}")
     
     # Get appointment stats
-    appointments_url = f"{APPOINTMENT_SERVICE_URL}/api/v1/appointments/appointments/stats/"
-    appointments_response = forward_request(request, 'GET', appointments_url)
-    if appointments_response and appointments_response.status_code == 200:
-        dashboard_stats['appointment_stats'] = appointments_response.json()
+    try:
+        appointments_url = f"{APPOINTMENT_SERVICE_URL}/api/v1/appointments/appointments/stats/"
+        appointments_response = forward_request(request, 'GET', appointments_url)
+        if appointments_response and appointments_response.status_code == 200:
+            dashboard_stats['appointment_stats'] = appointments_response.json()
+            print(f"✓ Appointments: {dashboard_stats['appointment_stats']}")
+        else:
+            print(f"✗ Appointments request failed: {appointments_response.status_code if appointments_response else 'No response'}")
+    except Exception as e:
+        print(f"✗ Appointments error: {str(e)}")
     
     # Get employee stats
-    employees_url = f"{EMPLOYEE_SERVICE_URL}/api/v1/employees/"
-    employees_response = forward_request(request, 'GET', employees_url)
-    if employees_response and employees_response.status_code == 200:
-        employees_data = employees_response.json()
-        dashboard_stats['total_employees'] = len(employees_data) if isinstance(employees_data, list) else 0
+    try:
+        employees_url = f"{EMPLOYEE_SERVICE_URL}/api/v1/employees/"
+        employees_response = forward_request(request, 'GET', employees_url)
+        if employees_response and employees_response.status_code == 200:
+            employees_data = employees_response.json()
+            dashboard_stats['total_employees'] = len(employees_data) if isinstance(employees_data, list) else 0
+            print(f"✓ Employees: {dashboard_stats['total_employees']}")
+        else:
+            print(f"✗ Employees request failed: {employees_response.status_code if employees_response else 'No response'}")
+    except Exception as e:
+        print(f"✗ Employees error: {str(e)}")
     
+    print(f"Final dashboard_stats: {dashboard_stats}")
     return Response(dashboard_stats, status=status.HTTP_200_OK)
 
 

@@ -36,7 +36,7 @@ QUEUE_NAME = 'notification_events'
 
 
 def publish_notification(
-    recipient_user_id: int,
+    recipient_user_id: str,
     message: str,
     title: Optional[str] = None,
     priority: str = 'medium',
@@ -47,7 +47,7 @@ def publish_notification(
     Publish a notification event to RabbitMQ.
     
     Args:
-        recipient_user_id: User ID to send notification to
+        recipient_user_id: User ID (UUID string) to send notification to
         message: Notification message
         title: Optional notification title
         priority: Priority level (low, medium, high)
@@ -170,7 +170,7 @@ def publish_bulk_notifications(notifications: list) -> int:
 
 
 # Convenience functions for common notification types
-def notify_appointment_created(user_id: int, appointment_details: Dict[str, Any]) -> bool:
+def notify_appointment_created(user_id: str, appointment_details: Dict[str, Any]) -> bool:
     """Send appointment creation notification"""
     return publish_notification(
         recipient_user_id=user_id,
@@ -182,7 +182,7 @@ def notify_appointment_created(user_id: int, appointment_details: Dict[str, Any]
     )
 
 
-def notify_vehicle_status_changed(user_id: int, vehicle_id: str, new_status: str) -> bool:
+def notify_vehicle_status_changed(user_id: str, vehicle_id: str, new_status: str) -> bool:
     """Send vehicle status change notification"""
     return publish_notification(
         recipient_user_id=user_id,
