@@ -135,24 +135,34 @@ WSGI_APPLICATION = 'employee_service.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Use SQLite for local development to avoid needing PostgreSQL client libraries
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# if DEBUG:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.sqlite3',
+#             'NAME': BASE_DIR / 'db.sqlite3',
+#         }
+#     }
+# else:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': config('EMPLOYEE_DB_NAME', default='servease_employees'),
+#             'USER': config('DB_USER', default='postgres'),
+#             'PASSWORD': config('DB_PASSWORD', default=''),
+#             'HOST': config('DB_HOST', default=''),
+#             'PORT': config('DB_PORT', default='5432'),
+#         }
+#     }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('EMPLOYEE_DB_NAME', default='servease_employees'),
+        'USER': config('DB_USER', default='postgres'),
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST': config('DB_HOST', default=''),
+        'PORT': config('DB_PORT', default='5432'),
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('EMPLOYEE_DB_NAME', default='servease_employees'),
-            'USER': config('DB_USER', default='postgres'),
-            'PASSWORD': config('DB_PASSWORD', default=''),
-            'HOST': config('DB_HOST', default=''),
-            'PORT': config('DB_PORT', default='5432'),
-        }
-    }
+}
 
 
 # Password validation

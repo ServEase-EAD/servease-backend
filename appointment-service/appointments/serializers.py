@@ -25,6 +25,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     vehicle_details = serializers.SerializerMethodField()
     employee_name = serializers.SerializerMethodField()
     time_until_appointment = serializers.SerializerMethodField()
+    duration = serializers.SerializerMethodField()
     
     class Meta:
         model = Appointment
@@ -32,12 +33,12 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'id', 'customer_id', 'vehicle_id', 'assigned_employee_id',
             'appointment_type', 'scheduled_date', 'scheduled_time', 'duration_minutes',
             'status', 'service_description', 'customer_notes', 'internal_notes',
-            'estimated_cost', 'created_by_user_id', 'created_at', 'updated_at',
+            'estimated_cost', 'duration_seconds', 'created_by_user_id', 'created_at', 'updated_at',
             'cancelled_at', 'completed_at',
             # Computed fields
-            'customer_name', 'vehicle_details', 'employee_name', 'time_until_appointment'
+            'customer_name', 'vehicle_details', 'employee_name', 'time_until_appointment', 'duration'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'completed_at', 'cancelled_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'completed_at', 'cancelled_at', 'duration']
     
     def get_customer_name(self, obj):
         """Fetch customer name from cache or API"""
@@ -83,6 +84,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
         """Calculate time until appointment"""
         from .utils.date_utils import get_time_until_appointment
         return get_time_until_appointment(obj.scheduled_date, obj.scheduled_time)
+    
+    def get_duration(self, obj):
+        """Get formatted duration"""
+        return obj.duration_formatted
     
     def validate(self, data):
         """Validate appointment data"""
