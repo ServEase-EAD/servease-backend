@@ -46,6 +46,11 @@ urlpatterns = [
         'get': 'stats'
     }), name='employee-stats'),
     
+    # Fix durations for completed logs
+    path('fix-durations/', TimeLogViewSet.as_view({
+        'post': 'fix_durations'
+    }), name='fix-durations'),
+    
     # Daily totals for employee
     path('daily-totals/', DailyTimeTotalViewSet.as_view({
         'get': 'by_employee'
