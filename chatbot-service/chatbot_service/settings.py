@@ -27,7 +27,8 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-%0cdw-(4gvq-c!ezk#r^f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# Allow Kubernetes pod IPs and common hostnames
+ALLOWED_HOSTS = ['*']  # In production, restrict this to specific domains/IPs
 
 
 # Application definition
