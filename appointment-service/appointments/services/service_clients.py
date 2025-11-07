@@ -138,8 +138,8 @@ class EmployeeServiceClient(ServiceClient):
     
     @staticmethod
     def get_employee(employee_id, auth_token=None):
-        """Get employee details"""
-        url = f"{settings.SERVICE_URLS['EMPLOYEE_SERVICE']}/api/v1/employees/{employee_id}/"
+        """Get employee details using the basic info endpoint for better permissions"""
+        url = f"{settings.SERVICE_URLS['EMPLOYEE_SERVICE']}/api/v1/employees/{employee_id}/basic/"
         headers = {}
         if auth_token:
             headers["Authorization"] = f"Bearer {auth_token}"
