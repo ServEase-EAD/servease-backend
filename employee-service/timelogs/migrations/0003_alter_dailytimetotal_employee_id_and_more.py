@@ -10,14 +10,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='dailytimetotal',
-            name='employee_id',
-            field=models.UUIDField(db_index=True, help_text='Reference to employee'),
+        migrations.RunSQL(
+            "ALTER TABLE daily_time_totals ALTER COLUMN employee_id TYPE uuid USING employee_id::text::uuid",
+            reverse_sql="ALTER TABLE daily_time_totals ALTER COLUMN employee_id TYPE integer USING employee_id::text::integer"
         ),
-        migrations.AlterField(
-            model_name='timelog',
-            name='employee_id',
-            field=models.UUIDField(db_index=True, help_text='Reference to employee'),
+        migrations.RunSQL(
+            "ALTER TABLE time_logs ALTER COLUMN employee_id TYPE uuid USING employee_id::text::uuid",
+            reverse_sql="ALTER TABLE time_logs ALTER COLUMN employee_id TYPE integer USING employee_id::text::integer"
         ),
     ]
