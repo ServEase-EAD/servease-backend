@@ -86,7 +86,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         
-        # Send creation notification
+        # Send creation notification to customer
         from .services.service_clients import NotificationServiceClient
         try:
             NotificationServiceClient.send_appointment_notification(
@@ -95,7 +95,46 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 self.get_serializer_context().get('auth_token')
             )
         except Exception as e:
-            print(f"Notification failed: {e}")
+            print(f"Customer notification failed: {e}")
+        
+        # Send notification to admin users using RabbitMQ
+        try:
+            from notification_publisher import publish_notification
+            
+            # For now, send to known admin users
+            known_admin_users = [
+                "ec0e0759-bdd9-4d43-b971-67b5f2a3cbb9",  # dana@gmail.com
+                "01f91762-0714-42fe-b8cf-858e75570562",  # admin@example.com
+            ]
+            
+            appointment = serializer.instance
+            admin_message = f"New {appointment.appointment_type} appointment created by customer and requires approval. Scheduled for {appointment.scheduled_date} at {appointment.scheduled_time}."
+            
+            # Send notification to each admin user via RabbitMQ
+            for admin_user_id in known_admin_users:
+                try:
+                    publish_notification(
+                        recipient_user_id=admin_user_id,
+                        message=admin_message,
+                        title="New Appointment - Action Required",
+                        priority="high",
+                        notification_type="APPOINTMENT",
+                        metadata={
+                            "appointment_id": str(appointment.id),
+                            "customer_id": str(appointment.customer_id),
+                            "scheduled_date": str(appointment.scheduled_date),
+                            "scheduled_time": str(appointment.scheduled_time),
+                            "appointment_type": appointment.appointment_type,
+                            "status": appointment.status,
+                            "action_required": "approval"
+                        }
+                    )
+                    print(f"✓ Admin notification sent to user {admin_user_id}")
+                except Exception as e:
+                    print(f"Failed to send admin notification: {e}")
+        
+        except Exception as e:
+            print(f"Admin notification process failed: {e}")
         
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

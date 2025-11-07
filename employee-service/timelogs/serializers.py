@@ -80,10 +80,12 @@ class TimeLogListSerializer(serializers.ModelSerializer):
             'description', 
             'vehicle', 
             'service', 
+            'duration_seconds',
             'duration', 
             'status', 
             'log_date',
-            'start_time'
+            'start_time',
+            'end_time'
         ]
     
     def get_duration(self, obj):

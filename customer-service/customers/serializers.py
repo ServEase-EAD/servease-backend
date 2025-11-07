@@ -189,6 +189,9 @@ class CustomerWithUserDataSerializer(serializers.ModelSerializer):
         source='user_data.user_role', read_only=True)
     user_is_active = serializers.BooleanField(
         source='user_data.is_active', read_only=True)
+    
+    # Convenience field for full name
+    full_name = serializers.SerializerMethodField(read_only=True)
 
     full_address = serializers.ReadOnlyField()
     is_business_customer = serializers.ReadOnlyField()
@@ -199,7 +202,7 @@ class CustomerWithUserDataSerializer(serializers.ModelSerializer):
             'id', 'user_id',
             # User data from auth service
             'user_email', 'user_first_name', 'user_last_name', 'user_phone',
-            'user_role', 'user_is_active',
+            'user_role', 'user_is_active', 'full_name',
             # Customer data
             'street_address', 'city', 'state', 'postal_code', 'country', 'full_address',
             'company_name', 'business_type', 'tax_id', 'is_business_customer',
@@ -208,3 +211,12 @@ class CustomerWithUserDataSerializer(serializers.ModelSerializer):
             'preferred_contact_method', 'notification_preferences',
             'created_at', 'updated_at'
         ]
+    
+    def get_full_name(self, obj):
+        """Get full name from user_data"""
+        if hasattr(obj, 'user_data') and obj.user_data:
+            first = obj.user_data.get('first_name', '')
+            last = obj.user_data.get('last_name', '')
+            full = f"{first} {last}".strip()
+            return full if full else "Unknown Customer"
+        return "Unknown Customer"

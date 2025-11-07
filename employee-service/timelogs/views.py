@@ -96,7 +96,45 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         """Override create to set employee_id from JWT token and update daily totals"""
         employee_id = self.get_employee_id()
         if not employee_id:
-            raise ValueError("Unable to extract employee_id from token")
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": "Unable to extract employee_id from token"})
+        
+        # Check if there's already a task in progress for this employee
+        existing_in_progress = TimeLog.objects.filter(
+            employee_id=employee_id,
+            status='inprogress'
+        ).exists()
+        
+        if existing_in_progress and serializer.validated_data.get('status') == 'inprogress':
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                "error": "Cannot start a new task. Another task is already in progress. Please pause or complete the current task first."
+            })
+        
+        # Check if this specific task already has an active log (non-completed)
+        task_type = serializer.validated_data.get('task_type')
+        if task_type == 'appointment':
+            appointment_id = serializer.validated_data.get('appointment_id')
+            existing_log = TimeLog.objects.filter(
+                employee_id=employee_id,
+                task_type='appointment',
+                appointment_id=appointment_id,
+                status__in=['inprogress', 'paused']
+            ).exists()
+        else:  # project
+            project_id = serializer.validated_data.get('project_id')
+            existing_log = TimeLog.objects.filter(
+                employee_id=employee_id,
+                task_type='project',
+                project_id=project_id,
+                status__in=['inprogress', 'paused']
+            ).exists()
+        
+        if existing_log:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                "error": "This task already has an active time log. Resume the existing log or complete it first."
+            })
         
         instance = serializer.save(employee_id=employee_id)
         
@@ -110,7 +148,10 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         
         # Check if the timelog is completed - completed timelogs are immutable
         if instance.status == 'completed':
-            raise ValueError('Cannot edit a completed timelog. Completed timelogs are immutable.')
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                "error": "Cannot edit a completed timelog. Completed timelogs are immutable."
+            })
         
         instance = serializer.save()
         if instance.log_date:
@@ -247,9 +288,44 @@ class TimeLogViewSet(viewsets.ModelViewSet):
             'filter': time_filter
         })
     
+    @action(detail=False, methods=['post'])
+    def fix_durations(self, request):
+        """Fix duration_seconds for completed logs that have 0 duration but have start_time and end_time"""
+        employee_id = self.get_employee_id()
+        
+        if not employee_id:
+            return Response({'error': 'Unable to extract employee_id from token'}, status=400)
+        
+        # Find completed logs with 0 duration but have both start_time and end_time
+        broken_logs = TimeLog.objects.filter(
+            employee_id=employee_id,
+            status='completed',
+            duration_seconds=0
+        ).exclude(
+            Q(start_time__isnull=True) | Q(end_time__isnull=True)
+        )
+        
+        fixed_count = 0
+        for log in broken_logs:
+            # Calculate duration from start_time to end_time
+            duration = int((log.end_time - log.start_time).total_seconds())
+            if duration > 0:
+                log.duration_seconds = duration
+                log.save()
+                fixed_count += 1
+                
+                # Update daily totals
+                if log.log_date:
+                    update_daily_total(log.employee_id, log.log_date)
+        
+        return Response({
+            'message': f'Fixed {fixed_count} time log(s)',
+            'fixed_count': fixed_count
+        })
+    
     @action(detail=True, methods=['post'])
     def start(self, request, log_id=None):
-        """Start/resume a time log"""
+        """Start/resume a time log - resets start_time to track current session"""
         log = self.get_object()
         
         if log.status == 'completed':
@@ -258,19 +334,24 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Debug logging
-        print(f"▶️ START/RESUME: Log {log.log_id}")
-        print(f"   Previous status: {log.status}")
-        print(f"   Accumulated duration: {log.duration_seconds}s")
+        # Check if there's another task already in progress for this employee
+        employee_id = self.get_employee_id()
+        existing_in_progress = TimeLog.objects.filter(
+            employee_id=employee_id,
+            status='inprogress'
+        ).exclude(log_id=log_id).exists()
         
-        # Update status and reset start_time for new session
+        if existing_in_progress:
+            return Response(
+                {'error': 'Cannot start this task. Another task is already in progress. Please pause or complete the current task first.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from django.utils import timezone
+        # Only set start_time and status, do not reset duration_seconds
         log.status = 'inprogress'
-        log.start_time = timezone.now()  # Use timezone-aware datetime
-        log.end_time = None  # Clear end_time when starting/resuming
-        
-        print(f"   New start time: {log.start_time}")
-        print(f"   Duration preserved: {log.duration_seconds}s")
-        
+        log.start_time = timezone.now()
+        # duration_seconds is accumulated, do not reset
         log.save()
         
         serializer = TimeLogSerializer(log)
@@ -278,7 +359,7 @@ class TimeLogViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def pause(self, request, log_id=None):
-        """Pause a time log and accumulate duration"""
+        """Pause a time log - accumulates duration from current session"""
         log = self.get_object()
         
         if log.status == 'completed':
@@ -293,25 +374,13 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Store previous duration for logging
-        previous_duration = log.duration_seconds
-        
-        # Update status
-        log.status = 'paused'
-        
-        # Calculate duration from current session and add to accumulated duration
+        # Calculate elapsed time in current session and add to accumulated duration
         if log.start_time:
-            current_session_duration = (timezone.now() - log.start_time).total_seconds()
-            log.duration_seconds += int(current_session_duration)
-            log.end_time = None  # Clear end_time when pausing (not completing)
-            
-            # Debug logging
-            print(f"⏸️ PAUSE: Log {log.log_id}")
-            print(f"   Previous accumulated: {previous_duration}s")
-            print(f"   Session duration: {int(current_session_duration)}s")
-            print(f"   New accumulated: {log.duration_seconds}s")
-            print(f"   Start time was: {log.start_time}")
+            from django.utils import timezone
+            elapsed_seconds = int((timezone.now() - log.start_time).total_seconds())
+            log.duration_seconds += elapsed_seconds
         
+        log.status = 'paused'
         log.save()
         
         serializer = TimeLogSerializer(log)
@@ -328,27 +397,25 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Store previous duration for logging
-        previous_duration = log.duration_seconds
+        from django.utils import timezone
+        current_status = log.status  # Store current status before changing
+        log.end_time = timezone.now()
         
-        # Update status and end time
+        # If currently in progress, add the current session time to duration
+        if current_status == 'inprogress' and log.start_time:
+            elapsed_seconds = int((log.end_time - log.start_time).total_seconds())
+            log.duration_seconds += elapsed_seconds
+        # If paused, keep accumulated duration_seconds (do not overwrite)
+        # Only set duration_seconds if it is zero and there was never a pause (edge case)
+        if log.duration_seconds == 0 and log.start_time and current_status != 'paused':
+            total_seconds = int((log.end_time - log.start_time).total_seconds())
+            log.duration_seconds = total_seconds
+        
         log.status = 'completed'
-        log.end_time = timezone.now()  # Use timezone-aware datetime
-        
-        # Calculate final duration and add to accumulated duration
-        if log.start_time:
-            current_session_duration = (log.end_time - log.start_time).total_seconds()
-            log.duration_seconds += int(current_session_duration)  # ADD to accumulated, don't overwrite!
-            
-            # Debug logging
-            print(f"✅ COMPLETE: Log {log.log_id}")
-            print(f"   Previous accumulated: {previous_duration}s")
-            print(f"   Final session duration: {int(current_session_duration)}s")
-            print(f"   Total duration: {log.duration_seconds}s")
-            print(f"   Start time was: {log.start_time}")
-            print(f"   End time: {log.end_time}")
-        
         log.save()
+        
+        # Sync duration back to the original task/appointment
+        self._sync_duration_to_source(log)
         
         # Update daily totals after completion
         if log.log_date:
@@ -361,6 +428,68 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 'data': serializer.data
             }
         )
+
+    def _sync_duration_to_source(self, log):
+        """Sync the duration back to the original task or appointment"""
+        import requests
+        from django.conf import settings
+        
+        try:
+            if log.task_type == 'appointment' and log.appointment_id:
+                # Update appointment duration via API
+                appointment_service_url = getattr(settings, 'APPOINTMENT_SERVICE_URL', 'http://appointment-service:8000')
+                url = f"{appointment_service_url}/api/v1/appointments/{log.appointment_id}/"
+                
+                # Get JWT token from request if available
+                token = None
+                if hasattr(self, 'request') and self.request:
+                    auth_header = self.request.headers.get('Authorization', '')
+                    if auth_header.startswith('Bearer '):
+                        token = auth_header.split(' ')[1]
+                
+                headers = {'Authorization': f'Bearer {token}'} if token else {}
+                
+                response = requests.patch(
+                    url,
+                    json={'duration_seconds': log.duration_seconds},
+                    headers=headers,
+                    timeout=5
+                )
+                
+                if response.status_code == 200:
+                    print(f"✅ Synced duration to appointment {log.appointment_id}: {log.duration_seconds}s")
+                else:
+                    print(f"⚠️ Failed to sync duration to appointment {log.appointment_id}: {response.status_code}")
+                    
+            elif log.task_type == 'project' and log.project_id:
+                # Update project task duration via API
+                project_service_url = getattr(settings, 'PROJECT_SERVICE_URL', 'http://vehicleandproject-service:8000')
+                url = f"{project_service_url}/api/v1/projects/tasks/{log.project_id}/"
+                
+                # Get JWT token from request if available
+                token = None
+                if hasattr(self, 'request') and self.request:
+                    auth_header = self.request.headers.get('Authorization', '')
+                    if auth_header.startswith('Bearer '):
+                        token = auth_header.split(' ')[1]
+                
+                headers = {'Authorization': f'Bearer {token}'} if token else {}
+                
+                response = requests.patch(
+                    url,
+                    json={'duration_seconds': log.duration_seconds},
+                    headers=headers,
+                    timeout=5
+                )
+                
+                if response.status_code == 200:
+                    print(f"✅ Synced duration to project task {log.project_id}: {log.duration_seconds}s")
+                else:
+                    print(f"⚠️ Failed to sync duration to project task {log.project_id}: {response.status_code}")
+                    
+        except Exception as e:
+            print(f"⚠️ Error syncing duration to source: {str(e)}")
+            # Don't fail the completion if sync fails
 
 
 class ShiftViewSet(viewsets.ModelViewSet):

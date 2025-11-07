@@ -150,6 +150,12 @@ class Task(models.Model):
         db_index=True,
     )
 
+    # Time tracking - populated from TimeLog when task is completed
+    duration_seconds = models.IntegerField(
+        default=0,
+        help_text="Total time taken to complete the task in seconds (from TimeLog)"
+    )
+
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -159,3 +165,13 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.project.title} - {self.title}"
+
+    @property
+    def duration_formatted(self):
+        """Return duration in format like '00:00:00' (HH:MM:SS)"""
+        if self.duration_seconds > 0:
+            hours = self.duration_seconds // 3600
+            minutes = (self.duration_seconds % 3600) // 60
+            seconds = self.duration_seconds % 60
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        return "00:00:00"

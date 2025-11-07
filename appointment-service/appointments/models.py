@@ -49,6 +49,12 @@ class Appointment(models.Model):
     internal_notes = models.TextField(blank=True)  # For employees only
     estimated_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
+    # Time tracking - populated from TimeLog when appointment is completed
+    duration_seconds = models.IntegerField(
+        default=0,
+        help_text="Total time taken to complete the appointment in seconds (from TimeLog)"
+    )
+    
     # Metadata
     created_by_user_id = models.UUIDField()  # User who created the appointment
     created_at = models.DateTimeField(auto_now_add=True)
@@ -75,6 +81,16 @@ class Appointment(models.Model):
         elif self.status == 'cancelled' and not self.cancelled_at:
             self.cancelled_at = timezone.now()
         super().save(*args, **kwargs)
+
+    @property
+    def duration_formatted(self):
+        """Return duration in format like '00:00:00' (HH:MM:SS)"""
+        if self.duration_seconds > 0:
+            hours = self.duration_seconds // 3600
+            minutes = (self.duration_seconds % 3600) // 60
+            seconds = self.duration_seconds % 60
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        return "00:00:00"
 
 
 class TimeSlot(models.Model):

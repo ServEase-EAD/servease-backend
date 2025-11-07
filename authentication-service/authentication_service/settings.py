@@ -42,13 +42,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders',
+    #'corsheaders',
     'accounts',
     'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    #'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -179,8 +179,8 @@ REST_FRAMEWORK = {
 # CORS Configuration
 # IMPORTANT: CORS is handled by nginx reverse proxy
 # Disable CORS in Django to prevent header duplication
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = []  # Empty - nginx handles CORS
+# CORS_ALLOW_ALL_ORIGINS = False
+# CORS_ALLOWED_ORIGINS = []  # Empty - nginx handles CORS
 
 # Security Settings for Production
 if not DEBUG:

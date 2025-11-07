@@ -8,6 +8,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
+import sys
+import os
+
+# Add parent directory to path to import notification_publisher
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from notification_publisher import publish_notification
 
 from .permissions import IsAdminUser
 
@@ -31,16 +37,19 @@ def forward_appointment_request(request, method, url, data=None, params=None):
     }
     
     try:
+        # Increased timeout from 10 to 30 seconds for data-heavy operations
+        request_timeout = 30
+        
         if method.upper() == 'GET':
-            response = requests.get(url, headers=headers, params=params, timeout=10)
+            response = requests.get(url, headers=headers, params=params, timeout=request_timeout)
         elif method.upper() == 'POST':
-            response = requests.post(url, headers=headers, json=data, timeout=10)
+            response = requests.post(url, headers=headers, json=data, timeout=request_timeout)
         elif method.upper() == 'PUT':
-            response = requests.put(url, headers=headers, json=data, timeout=10)
+            response = requests.put(url, headers=headers, json=data, timeout=request_timeout)
         elif method.upper() == 'PATCH':
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
+            response = requests.patch(url, headers=headers, json=data, timeout=request_timeout)
         elif method.upper() == 'DELETE':
-            response = requests.delete(url, headers=headers, timeout=10)
+            response = requests.delete(url, headers=headers, timeout=request_timeout)
         else:
             return None
         
@@ -126,10 +135,19 @@ def approve_appointment(request, appointment_id):
         "assigned_employees": ["employee_id1", "employee_id2"] (optional)
     }
     """
-    url = f"{APPOINTMENT_SERVICE_URL}/api/v1/appointments/{appointment_id}/confirm/"
+    # Extract assigned_employees from request data
+    assigned_employees = request.data.get('assigned_employees', [])
+    logger.info(f"Approving appointment {appointment_id} with assigned_employees: {assigned_employees}")
+    
+    # Prepare data for confirm endpoint (without assigned_employees)
+    confirm_data = {
+        'scheduled_date': request.data.get('scheduled_date'),
+        'scheduled_time': request.data.get('scheduled_time'),
+    }
     
     # Use the confirm endpoint to approve
-    response = forward_appointment_request(request, 'POST', url, data=request.data)
+    url = f"{APPOINTMENT_SERVICE_URL}/api/v1/appointments/{appointment_id}/confirm/"
+    response = forward_appointment_request(request, 'POST', url, data=confirm_data)
     
     if response is None:
         return Response(
@@ -137,13 +155,89 @@ def approve_appointment(request, appointment_id):
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
     
-    return Response(
-        {
-            'message': 'Appointment approved successfully',
-            'data': response.json() if response.status_code in [200, 201] else None
-        },
-        status=response.status_code
-    )
+    # If approval failed, return the error
+    if response.status_code not in [200, 201]:
+        logger.error(f"Appointment confirmation failed with status {response.status_code}")
+        return Response(
+            {
+                'message': 'Appointment approval failed',
+                'data': response.json() if response.content else None
+            },
+            status=response.status_code
+        )
+    
+    # If assigned_employees provided, assign the first employee
+    # (Note: The appointment service only supports single employee assignment)
+    if assigned_employees and len(assigned_employees) > 0:
+        employee_id = assigned_employees[0]
+        logger.info(f"Assigning employee {employee_id} to appointment {appointment_id}")
+        assign_url = f"{APPOINTMENT_SERVICE_URL}/api/v1/appointments/{appointment_id}/assign/"
+        assign_data = {'employee_id': employee_id}
+        
+        assign_response = forward_appointment_request(request, 'POST', assign_url, data=assign_data)
+        
+        if assign_response and assign_response.status_code == 200:
+            logger.info(f"Employee {employee_id} assigned successfully to appointment {appointment_id}")
+            # Send notification to assigned employee
+            try:
+                appointment_date = request.data.get('scheduled_date', 'upcoming')
+                appointment_time = request.data.get('scheduled_time', '')
+                
+                publish_notification(
+                    recipient_user_id=employee_id,
+                    message=f'You have been assigned to an appointment scheduled for {appointment_date} {appointment_time}',
+                    title='New Appointment Assignment',
+                    notification_type='APPOINTMENT',
+                    priority='high',
+                    metadata={
+                        'appointment_id': appointment_id,
+                        'scheduled_date': appointment_date,
+                        'scheduled_time': appointment_time
+                    }
+                )
+                logger.info(f"Notification sent to employee {employee_id} for appointment assignment")
+            except Exception as notif_error:
+                logger.error(f"Failed to send notification to employee {employee_id}: {str(notif_error)}")
+            
+            # Return the updated appointment data from assign response
+            try:
+                assign_data_response = assign_response.json()
+                logger.info(f"Assign response data: {assign_data_response}")
+                if 'appointment' in assign_data_response:
+                    return Response(
+                        {
+                            'message': 'Appointment approved and employee assigned successfully',
+                            'data': assign_data_response['appointment']
+                        },
+                        status=status.HTTP_200_OK
+                    )
+            except Exception as e:
+                logger.error(f"Error parsing assign response: {str(e)}")
+        else:
+            logger.warning(f"Failed to assign employee to appointment {appointment_id}. Status: {assign_response.status_code if assign_response else 'None'}")
+    else:
+        logger.info(f"No employees to assign for appointment {appointment_id}")
+    
+    # Return the appointment data from confirm response
+    try:
+        response_data = response.json()
+        appointment_data = response_data.get('appointment', response_data.get('data', None))
+        return Response(
+            {
+                'message': 'Appointment approved successfully',
+                'data': appointment_data
+            },
+            status=response.status_code
+        )
+    except Exception as e:
+        logger.error(f"Error parsing confirm response: {str(e)}")
+        return Response(
+            {
+                'message': 'Appointment approved successfully',
+                'data': response.json() if response.status_code in [200, 201] else None
+            },
+            status=response.status_code
+        )
 
 
 @api_view(['POST'])
@@ -199,6 +293,34 @@ def assign_employees_to_appointment(request, appointment_id):
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
     
+    # Send notification to each assigned employee
+    if response.status_code == 200:
+        try:
+            employee_ids = request.data.get('employee_ids', [])
+            appointment_date = request.data.get('scheduled_date', 'upcoming')
+            appointment_time = request.data.get('scheduled_time', '')
+            
+            for employee_id in employee_ids:
+                try:
+                    publish_notification(
+                        recipient_user_id=employee_id,
+                        message=f'You have been assigned to an appointment scheduled for {appointment_date} {appointment_time}',
+                        title='New Appointment Assignment',
+                        notification_type='APPOINTMENT',
+                        priority='high',
+                        metadata={
+                            'appointment_id': appointment_id,
+                            'scheduled_date': appointment_date,
+                            'scheduled_time': appointment_time
+                        }
+                    )
+                    logger.info(f"Notification sent to employee {employee_id} for appointment assignment")
+                except Exception as notif_error:
+                    logger.error(f"Failed to send notification to employee {employee_id}: {str(notif_error)}")
+                    # Don't fail the assignment if notification fails
+        except Exception as e:
+            logger.error(f"Error sending appointment assignment notifications: {str(e)}")
+    
     return Response(
         {
             'message': 'Employees assigned to appointment successfully',
@@ -240,6 +362,29 @@ def create_appointment_task(request, appointment_id):
             {'error': 'Failed to connect to appointment service'},
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
+    
+    # Send notification to assigned employee if specified
+    if response.status_code == 201 and 'assigned_employee_id' in request.data:
+        try:
+            employee_id = request.data['assigned_employee_id']
+            task_title = request.data['title']
+            
+            publish_notification(
+                recipient_user_id=employee_id,
+                message=f'You have been assigned to a new appointment task: {task_title}',
+                title='New Appointment Task Assignment',
+                notification_type='APPOINTMENT',
+                priority='high',
+                metadata={
+                    'appointment_id': appointment_id,
+                    'task_title': task_title,
+                    'task_description': request.data.get('description', '')
+                }
+            )
+            logger.info(f"Notification sent to employee {employee_id} for appointment task assignment")
+        except Exception as notif_error:
+            logger.error(f"Failed to send notification to employee: {str(notif_error)}")
+            # Don't fail the task creation if notification fails
     
     return Response(response.json(), status=response.status_code)
 
