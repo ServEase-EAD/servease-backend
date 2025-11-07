@@ -408,6 +408,9 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         log.status = 'completed'
         log.save()
         
+        # Sync duration back to the original task/appointment
+        self._sync_duration_to_source(log)
+        
         # Update daily totals after completion
         if log.log_date:
             update_daily_total(log.employee_id, log.log_date)
@@ -418,6 +421,68 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                 'data': TimeLogSerializer(log).data
             }
         )
+
+    def _sync_duration_to_source(self, log):
+        """Sync the duration back to the original task or appointment"""
+        import requests
+        from django.conf import settings
+        
+        try:
+            if log.task_type == 'appointment' and log.appointment_id:
+                # Update appointment duration via API
+                appointment_service_url = getattr(settings, 'APPOINTMENT_SERVICE_URL', 'http://appointment-service:8000')
+                url = f"{appointment_service_url}/api/v1/appointments/{log.appointment_id}/"
+                
+                # Get JWT token from request if available
+                token = None
+                if hasattr(self, 'request') and self.request:
+                    auth_header = self.request.headers.get('Authorization', '')
+                    if auth_header.startswith('Bearer '):
+                        token = auth_header.split(' ')[1]
+                
+                headers = {'Authorization': f'Bearer {token}'} if token else {}
+                
+                response = requests.patch(
+                    url,
+                    json={'duration_seconds': log.duration_seconds},
+                    headers=headers,
+                    timeout=5
+                )
+                
+                if response.status_code == 200:
+                    print(f"✅ Synced duration to appointment {log.appointment_id}: {log.duration_seconds}s")
+                else:
+                    print(f"⚠️ Failed to sync duration to appointment {log.appointment_id}: {response.status_code}")
+                    
+            elif log.task_type == 'project' and log.project_id:
+                # Update project task duration via API
+                project_service_url = getattr(settings, 'PROJECT_SERVICE_URL', 'http://vehicleandproject-service:8000')
+                url = f"{project_service_url}/api/v1/projects/tasks/{log.project_id}/"
+                
+                # Get JWT token from request if available
+                token = None
+                if hasattr(self, 'request') and self.request:
+                    auth_header = self.request.headers.get('Authorization', '')
+                    if auth_header.startswith('Bearer '):
+                        token = auth_header.split(' ')[1]
+                
+                headers = {'Authorization': f'Bearer {token}'} if token else {}
+                
+                response = requests.patch(
+                    url,
+                    json={'duration_seconds': log.duration_seconds},
+                    headers=headers,
+                    timeout=5
+                )
+                
+                if response.status_code == 200:
+                    print(f"✅ Synced duration to project task {log.project_id}: {log.duration_seconds}s")
+                else:
+                    print(f"⚠️ Failed to sync duration to project task {log.project_id}: {response.status_code}")
+                    
+        except Exception as e:
+            print(f"⚠️ Error syncing duration to source: {str(e)}")
+            # Don't fail the completion if sync fails
 
 
 class ShiftViewSet(viewsets.ModelViewSet):
