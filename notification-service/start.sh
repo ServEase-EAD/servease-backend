@@ -1,46 +1,38 @@
 #!/bin/bash
 
-# Exit on error
-set -e
+set -euo pipefail
 
-echo "🚀 Starting Notification Service..."
+log() {
+    printf '[notification-service] %s\n' "$@"
+}
 
-# Change to app directory
+log "Starting service bootstrap"
+
 cd /app
 
-# Run migrations
-echo "📦 Running database migrations..."
+log "Applying database migrations"
 python manage.py migrate
 
-# Start Daphne in the background
-echo "🌐 Starting Daphne ASGI server on port 8006..."
+log "Starting Daphne on port 8006"
 daphne -b 0.0.0.0 -p 8006 notification_service.asgi:application &
 DAPHNE_PID=$!
 
-# Wait a moment for Daphne to start
 sleep 2
 
-# Start RabbitMQ consumer in the background
-echo "🐰 Starting RabbitMQ consumer..."
-cd /app && python -m app_notifications.rabbitmq_consumer &
+log "Starting RabbitMQ consumer"
+python -m app_notifications.rabbitmq_consumer &
 CONSUMER_PID=$!
 
-# Function to handle shutdown
 shutdown() {
-    echo "🛑 Shutting down services..."
-    kill $DAPHNE_PID $CONSUMER_PID 2>/dev/null
-    wait $DAPHNE_PID $CONSUMER_PID 2>/dev/null
-    echo "✓ Services stopped"
+    log "Stopping background processes"
+    kill "$DAPHNE_PID" "$CONSUMER_PID" 2>/dev/null || true
+    wait "$DAPHNE_PID" "$CONSUMER_PID" 2>/dev/null || true
+    log "Shutdown complete"
     exit 0
 }
 
-# Trap termination signals
 trap shutdown SIGTERM SIGINT
 
-echo "✓ All services started successfully"
-echo "  - Daphne (PID: $DAPHNE_PID)"
-echo "  - RabbitMQ Consumer (PID: $CONSUMER_PID)"
-echo "⏳ Services running..."
+log "Service started (Daphne PID=$DAPHNE_PID, Consumer PID=$CONSUMER_PID)"
 
-# Wait for processes
-wait
+wait "$DAPHNE_PID" "$CONSUMER_PID"
