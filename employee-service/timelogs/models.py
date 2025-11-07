@@ -85,11 +85,13 @@ class TimeLog(models.Model):
     
     @property
     def duration_formatted(self):
-        """Return duration in format like '2.5h'"""
+        """Return duration in format like '00:00:00' (HH:MM:SS)"""
         if self.duration_seconds > 0:
-            hours = self.duration_seconds / 3600
-            return f"{hours:.1f}h"
-        return "0h"
+            hours = self.duration_seconds // 3600
+            minutes = (self.duration_seconds % 3600) // 60
+            seconds = self.duration_seconds % 60
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        return "00:00:00"
     
     def save(self, *args, **kwargs):
         """Override save to automatically set log_date from start_time"""

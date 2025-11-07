@@ -44,11 +44,16 @@ class BaseProjectSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     """Serializer for Task model"""
+    duration = serializers.SerializerMethodField()
     
     class Meta:
         model = Task
         fields = '__all__'
-        read_only_fields = ['task_id', 'created_at', 'updated_at']
+        read_only_fields = ['task_id', 'created_at', 'updated_at', 'duration']
+    
+    def get_duration(self, obj):
+        """Get formatted duration"""
+        return obj.duration_formatted
     
     def validate_due_date(self, value):
         """Validate that the due date is not in the past"""
