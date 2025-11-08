@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     EmployeeListCreateView,
     EmployeeRetrieveUpdateDestroyView,
+    EmployeeBasicInfoView,
     AssignedTasksViewSet,
     ProfileView,
     ChangePasswordView,
@@ -15,6 +16,7 @@ urlpatterns = [
     # Employee management endpoints
     path('', EmployeeListCreateView.as_view(), name='employee-list-create'),
     path('<uuid:pk>/', EmployeeRetrieveUpdateDestroyView.as_view(), name='employee-detail'),
+    path('<uuid:pk>/basic/', EmployeeBasicInfoView.as_view(), name='employee-basic-info'),
     
     # Assigned tasks
     path('', include(router.urls)),
