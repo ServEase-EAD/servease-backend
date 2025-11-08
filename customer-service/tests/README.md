@@ -1,9 +1,11 @@
 # Customer Service - Testing Documentation
 
 ## Overview
+
 Comprehensive test suite for the ServEase Customer Service microservice, covering models, permissions, and serializers.
 
 ## Test Statistics
+
 - **Total Tests**: 63
 - **Status**: ✅ All Passing
 - **Overall Coverage**: 33.54%
@@ -12,44 +14,52 @@ Comprehensive test suite for the ServEase Customer Service microservice, coverin
 ## Coverage by Component
 
 ### Core Components (100% Coverage Goal)
-| Component | Coverage | Tests | Status |
-|-----------|----------|-------|--------|
-| **models.py** | 100% (46/46) | 17 tests | ✅ Excellent |
-| **permissions.py** | 92% (33/36) | 20 tests | ✅ Excellent |
-| **serializers.py** | 93% (77/83) | 26 tests | ✅ Excellent |
-| **apps.py** | 100% (4/4) | - | ✅ Complete |
-| **admin.py** | 100% (0/0) | - | ✅ Complete |
+
+| Component          | Coverage     | Tests    | Status       |
+| ------------------ | ------------ | -------- | ------------ |
+| **models.py**      | 100% (46/46) | 17 tests | ✅ Excellent |
+| **permissions.py** | 92% (33/36)  | 20 tests | ✅ Excellent |
+| **serializers.py** | 93% (77/83)  | 26 tests | ✅ Excellent |
+| **apps.py**        | 100% (4/4)   | -        | ✅ Complete  |
+| **admin.py**       | 100% (0/0)   | -        | ✅ Complete  |
 
 ### Not Tested (Future Work)
-| Component | Coverage | Lines | Reason |
-|-----------|----------|-------|--------|
-| **views.py** | 0% | 223 | Complex integration requiring auth service mocking |
-| **authentication.py** | 0% | 75 | JWT middleware tested at integration level |
-| **urls.py** | 0% | 10 | Django configuration |
+
+| Component             | Coverage | Lines | Reason                                             |
+| --------------------- | -------- | ----- | -------------------------------------------------- |
+| **views.py**          | 0%       | 223   | Complex integration requiring auth service mocking |
+| **authentication.py** | 0%       | 75    | JWT middleware tested at integration level         |
+| **urls.py**           | 0%       | 10    | Django configuration                               |
 
 ## Test Breakdown
 
 ### 1. Model Tests (17 tests)
+
 **File**: `tests/test_models.py`
 **Coverage**: 100%
 
 #### Test Categories:
+
 - **Creation & Validation** (3 tests)
+
   - ✅ Create customer with minimal fields
   - ✅ Customer string representation
   - ✅ Unique user_id constraint
 
 - **Properties** (4 tests)
+
   - ✅ Full address formatting
   - ✅ Full address with missing fields
   - ✅ Is business customer (True)
   - ✅ Is business customer (False)
 
 - **Business Logic** (2 tests)
+
   - ✅ Increment service count
   - ✅ Update last service date
 
 - **Data Fields** (5 tests)
+
   - ✅ Emergency contact information
   - ✅ Business information fields
   - ✅ Notification preferences JSON
@@ -62,48 +72,56 @@ Comprehensive test suite for the ServEase Customer Service microservice, coverin
   - ✅ Verified customer attributes
 
 ### 2. Permission Tests (20 tests)
+
 **File**: `tests/test_permissions.py`
 **Coverage**: 92%
 
 #### Permission Classes Tested:
 
 **IsCustomer** (4 tests)
+
 - ✅ Allows authenticated customers
 - ✅ Denies employees
 - ✅ Denies admins
 - ✅ Denies unauthenticated users
 
 **IsOwnerCustomer** (4 tests)
+
 - ✅ Base permission for customers
 - ✅ Denies employees base permission
 - ✅ Object permission for owner
 - ✅ Denies non-owner access
 
 **IsCustomerOrReadOnly** (4 tests)
+
 - ✅ Allows GET for anyone
 - ✅ Allows POST for customers
 - ✅ Denies POST for non-customers
 - ✅ Allows OPTIONS requests
 
 **IsAdminOrEmployee** (4 tests)
+
 - ✅ Allows admins
 - ✅ Allows employees
 - ✅ Denies customers
 - ✅ Denies unauthenticated users
 
 **IsOwnerOrAdminOrEmployee** (4 tests)
+
 - ✅ Admin access to any customer
 - ✅ Employee access to any customer
 - ✅ Customer access to own profile
 - ✅ Customer denied other profiles
 
 ### 3. Serializer Tests (26 tests)
+
 **File**: `tests/test_serializers.py`
 **Coverage**: 93%
 
 #### Serializer Classes Tested:
 
 **CustomerSerializer** (5 tests)
+
 - ✅ Basic serialization
 - ✅ ID returns user_id
 - ✅ Full name from context
@@ -111,10 +129,12 @@ Comprehensive test suite for the ServEase Customer Service microservice, coverin
 - ✅ Read-only fields validation
 
 **CustomerBasicSerializer** (2 tests)
+
 - ✅ Minimal fields for performance
 - ✅ Excludes detailed information
 
 **CustomerCreateSerializer** (5 tests)
+
 - ✅ Validate unique user_id
 - ✅ Reject duplicate user_id
 - ✅ Create with all fields
@@ -122,22 +142,26 @@ Comprehensive test suite for the ServEase Customer Service microservice, coverin
 - ✅ Required field validation
 
 **CustomerUpdateSerializer** (3 tests)
+
 - ✅ Update customer fields
 - ✅ Partial updates
 - ✅ User_id cannot be updated
 
 **CustomerDashboardSerializer** (3 tests)
+
 - ✅ Dashboard data serialization
 - ✅ Full name from context
 - ✅ Verification status included
 
 **CustomerWithUserDataSerializer** (4 tests)
+
 - ✅ Serialize with attached user data
 - ✅ Full name from user data
 - ✅ Handle missing user data
 - ✅ All customer and user fields
 
 **Test Features**:
+
 - Field validation
 - Unique constraints
 - Read-only field enforcement
@@ -147,16 +171,19 @@ Comprehensive test suite for the ServEase Customer Service microservice, coverin
 ## Running Tests
 
 ### Quick Run
+
 ```bash
 ./run_tests.sh
 ```
 
 ### Detailed Run
+
 ```bash
 pytest -v --cov=customers --cov-report=html --cov-report=term-missing
 ```
 
 ### Run Specific Test File
+
 ```bash
 pytest tests/test_models.py -v
 pytest tests/test_permissions.py -v
@@ -164,17 +191,20 @@ pytest tests/test_serializers.py -v
 ```
 
 ### Run Specific Test Class
+
 ```bash
 pytest tests/test_models.py::TestCustomerModel -v
 pytest tests/test_permissions.py::TestIsCustomerPermission -v
 ```
 
 ### Run Single Test
+
 ```bash
 pytest tests/test_models.py::TestCustomerModel::test_create_customer -v
 ```
 
 ### Generate Coverage Report
+
 ```bash
 pytest --cov=customers --cov-report=html
 open htmlcov/index.html  # Open coverage report in browser
@@ -183,6 +213,7 @@ open htmlcov/index.html  # Open coverage report in browser
 ## Test Configuration
 
 ### pytest.ini
+
 ```ini
 [pytest]
 DJANGO_SETTINGS_MODULE = customer_service.settings
@@ -191,6 +222,7 @@ testpaths = tests
 ```
 
 ### .coveragerc
+
 ```ini
 [run]
 source = customers
@@ -201,6 +233,7 @@ exclude_lines = pragma: no cover
 ```
 
 ## Dependencies
+
 ```
 pytest==7.4.3
 pytest-django==4.7.0
@@ -213,11 +246,13 @@ faker==20.1.0
 ## Fixtures
 
 ### User Fixtures
+
 - `customer_user`: Mock customer user
 - `employee_user`: Mock employee user
 - `admin_user`: Mock admin user
 
 ### Data Fixtures
+
 - `customer_factory`: Factory for creating customers
 - `sample_customer`: Pre-created customer
 - `business_customer`: Business customer
@@ -229,6 +264,7 @@ faker==20.1.0
 ## Key Testing Patterns
 
 ### 1. Model Testing
+
 ```python
 def test_create_customer(self, customer_factory):
     customer = customer_factory(user_id=uuid.uuid4())
@@ -237,6 +273,7 @@ def test_create_customer(self, customer_factory):
 ```
 
 ### 2. Permission Testing
+
 ```python
 def test_allows_authenticated_customer(self, customer_user):
     request = Mock()
@@ -246,6 +283,7 @@ def test_allows_authenticated_customer(self, customer_user):
 ```
 
 ### 3. Serializer Testing
+
 ```python
 def test_serialize_customer(self, sample_customer):
     serializer = CustomerSerializer(sample_customer)
@@ -269,21 +307,24 @@ def test_serialize_customer(self, sample_customer):
 ✅ **92% permission coverage** - Security properly validated  
 ✅ **93% serializer coverage** - Data transformation verified  
 ✅ **Fast execution** - Under 2.5 minutes for full suite  
-✅ **Clear reporting** - HTML and terminal coverage reports  
+✅ **Clear reporting** - HTML and terminal coverage reports
 
 ## Future Improvements
 
 ### High Priority
+
 1. Add view/API endpoint integration tests
 2. Test authentication middleware
 3. Add performance benchmarks
 
 ### Medium Priority
+
 1. Add mutation testing
 2. Implement property-based testing
 3. Add load testing for high-volume scenarios
 
 ### Low Priority
+
 1. Add visual regression testing
 2. Implement contract testing
 3. Add chaos engineering tests
@@ -291,6 +332,7 @@ def test_serialize_customer(self, sample_customer):
 ## Continuous Integration
 
 ### Recommended CI Pipeline
+
 ```yaml
 test:
   script:

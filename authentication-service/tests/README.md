@@ -10,14 +10,14 @@
 
 ## 🎯 Test Coverage Breakdown
 
-| Module | Statements | Missing | Coverage |
-|--------|-----------|---------|----------|
-| models.py | 48 | 0 | **100.00%** |
-| permissions.py | 16 | 0 | **100.00%** |
-| serializers.py | 62 | 1 | **98.39%** |
-| views.py | 156 | 16 | **89.74%** |
-| urls.py | 4 | 0 | **100.00%** |
-| **TOTAL** | **363** | **72** | **80.17%** |
+| Module         | Statements | Missing | Coverage    |
+| -------------- | ---------- | ------- | ----------- |
+| models.py      | 48         | 0       | **100.00%** |
+| permissions.py | 16         | 0       | **100.00%** |
+| serializers.py | 62         | 1       | **98.39%**  |
+| views.py       | 156        | 16      | **89.74%**  |
+| urls.py        | 4          | 0       | **100.00%** |
+| **TOTAL**      | **363**    | **72**  | **80.17%**  |
 
 ## 📁 Test Structure
 
@@ -34,7 +34,9 @@ tests/
 ## 🧪 Test Categories
 
 ### 1. Model Tests (test_models.py)
+
 Tests for `CustomUser` model and `CustomUserManager`:
+
 - ✅ User creation (customer, employee, admin)
 - ✅ Email validation and uniqueness
 - ✅ Password hashing
@@ -44,7 +46,9 @@ Tests for `CustomUser` model and `CustomUserManager`:
 - ✅ Timestamps (created_at, updated_at)
 
 ### 2. Serializer Tests (test_serializers.py)
+
 Tests for all serializers:
+
 - ✅ UserRegistrationSerializer (5 tests)
 - ✅ EmployeeRegistrationSerializer (2 tests)
 - ✅ UserLoginSerializer (4 tests)
@@ -53,7 +57,9 @@ Tests for all serializers:
 - ✅ UserDetailSerializer (2 tests)
 
 ### 3. Permission Tests (test_permissions.py)
+
 Tests for custom permission classes:
+
 - ✅ IsAdmin (4 tests)
 - ✅ IsEmployee (3 tests)
 - ✅ IsCustomer (3 tests)
@@ -61,7 +67,9 @@ Tests for custom permission classes:
 - ✅ IsOwnerOrAdmin (4 tests)
 
 ### 4. View/API Tests (test_views.py)
+
 Integration tests for all API endpoints:
+
 - ✅ User Registration (4 tests)
 - ✅ User Login (4 tests)
 - ✅ User Logout (3 tests)
@@ -78,11 +86,13 @@ Integration tests for all API endpoints:
 ## 🚀 Running the Tests
 
 ### Option 1: Using the Test Runner Script
+
 ```bash
 ./run_tests.sh
 ```
 
 ### Option 2: Using pytest directly
+
 ```bash
 # Run all tests with coverage
 pytest --cov=accounts --cov-report=term-missing --cov-report=html
@@ -98,6 +108,7 @@ pytest tests/test_models.py::TestCustomUserModel::test_create_user -v
 ```
 
 ### Option 3: Using pytest with markers
+
 ```bash
 # Run only unit tests
 pytest -m unit
@@ -116,6 +127,7 @@ open htmlcov/index.html
 ```
 
 The report shows:
+
 - Line-by-line coverage for each file
 - Which lines are covered/missed
 - Branch coverage
@@ -124,17 +136,21 @@ The report shows:
 ## 🔧 Test Configuration
 
 ### pytest.ini
+
 - Django settings module: `authentication_service.settings`
 - Minimum coverage threshold: 80%
 - Output format: verbose with color
 
 ### .coveragerc
+
 - Coverage source: `accounts` app
 - Excluded files: migrations, tests, pycache, settings, etc.
 - Report format: HTML and terminal with missing lines
 
 ### conftest.py
+
 Provides reusable fixtures:
+
 - `api_client`: DRF API client
 - `customer_user`, `employee_user`, `admin_user`: Test users
 - `customer_token`, `employee_token`, `admin_token`: JWT tokens
@@ -144,12 +160,14 @@ Provides reusable fixtures:
 ## ✅ Test Quality Metrics
 
 ### Unit Tests Coverage
+
 - **Models**: 100% coverage
-- **Permissions**: 100% coverage  
+- **Permissions**: 100% coverage
 - **Serializers**: 98.39% coverage
 - **URLs**: 100% coverage
 
 ### Integration Tests Coverage
+
 - **Views/APIs**: 89.74% coverage
 - All critical endpoints tested
 - Authentication and authorization tested
@@ -169,6 +187,7 @@ Provides reusable fixtures:
 ## 📝 Test Maintenance
 
 ### Adding New Tests
+
 1. Create test methods in appropriate test file
 2. Use existing fixtures from `conftest.py`
 3. Follow naming convention: `test_<what_is_being_tested>`
@@ -176,6 +195,7 @@ Provides reusable fixtures:
 5. Check coverage impact
 
 ### When Code Changes
+
 1. Run related tests: `pytest tests/test_<module>.py`
 2. Update tests if behavior changed intentionally
 3. Add new tests for new functionality
@@ -184,21 +204,25 @@ Provides reusable fixtures:
 ## 🐛 Debugging Tests
 
 ### Run tests with more detail
+
 ```bash
 pytest -vv --tb=long
 ```
 
 ### Run tests with print statements
+
 ```bash
 pytest -s
 ```
 
 ### Run tests with debugger
+
 ```bash
 pytest --pdb
 ```
 
 ### Run failed tests only
+
 ```bash
 pytest --lf
 ```
@@ -225,6 +249,7 @@ The following areas have lower coverage and are candidates for additional tests:
 3. **middleware.py** (45.83% - middleware logic)
 
 These are acceptable as they're either:
+
 - Not actively used in the current implementation
 - Difficult to test in isolation
 - Tested indirectly through integration tests
@@ -232,6 +257,7 @@ These are acceptable as they're either:
 ## 🎉 Conclusion
 
 This test suite provides comprehensive coverage of the authentication service with:
+
 - **87 passing tests**
 - **80.17% code coverage**
 - **Unit and integration tests**

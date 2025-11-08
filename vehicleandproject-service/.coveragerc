@@ -1,0 +1,20 @@
+[run]
+source = vehicles,projects
+omit = 
+    */migrations/*
+    */tests/*
+    */__pycache__/*
+    */venv/*
+    */env/*
+    manage.py
+    vehicleandproject_service/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if settings.DEBUG:
+    if TYPE_CHECKING:
