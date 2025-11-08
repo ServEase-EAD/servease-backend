@@ -91,6 +91,22 @@ class EmployeeRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsEmployeeOwnerOrAdmin]
 
 
+class EmployeeBasicInfoView(generics.RetrieveAPIView):
+    """
+    Retrieve basic employee information (name, email) for service-to-service communication.
+    This endpoint is less restrictive to allow other services to get employee names
+    for display purposes (e.g., appointment listings).
+    """
+    queryset = Employee.objects.select_related('user').all()
+    serializer_class = EmployeeProfileSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['basic_info_only'] = True
+        return context
+
+
 class AssignedTasksPagination(PageNumberPagination):
     page_size = 10
 
