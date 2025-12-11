@@ -14,7 +14,7 @@ from .models import CustomUser
 
 def get_tokens_for_user(user):
     """
-    Generate tokens with custom claims including user_role
+    Generate tokens with custom claims including user_role and phone_number
     """
     refresh = RefreshToken.for_user(user)
     
@@ -23,6 +23,7 @@ def get_tokens_for_user(user):
     refresh['email'] = user.email
     refresh['first_name'] = user.first_name
     refresh['last_name'] = user.last_name
+    refresh['phone_number'] = user.phone_number if user.phone_number else ''
     
     return {
         'refresh': str(refresh),
@@ -35,11 +36,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
         
-        # Add custom claims
+        # Add custom claims including phone_number
         token['user_role'] = user.user_role
         token['email'] = user.email
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
+        token['phone_number'] = user.phone_number if user.phone_number else ''
         
         return token
 

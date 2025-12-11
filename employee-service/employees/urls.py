@@ -7,6 +7,7 @@ from .views import (
     AssignedTasksViewSet,
     ProfileView,
     ChangePasswordView,
+    admin_create_or_update_employee_profile,
 )
 
 router = DefaultRouter()
@@ -17,6 +18,9 @@ urlpatterns = [
     path('', EmployeeListCreateView.as_view(), name='employee-list-create'),
     path('<uuid:pk>/', EmployeeRetrieveUpdateDestroyView.as_view(), name='employee-detail'),
     path('<uuid:pk>/basic/', EmployeeBasicInfoView.as_view(), name='employee-basic-info'),
+    
+    # Admin endpoint to create/update employee profiles
+    path('admin/<uuid:employee_id>/profile/', admin_create_or_update_employee_profile, name='admin-employee-profile'),
     
     # Assigned tasks
     path('', include(router.urls)),

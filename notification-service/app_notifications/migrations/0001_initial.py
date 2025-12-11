@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name='Notification',
             fields=[
                 ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('recipient_user_id', models.IntegerField(db_index=True)),
+                ('recipient_user_id', models.UUIDField(db_index=True)),
                 ('message', models.TextField()),
                 ('type', models.CharField(choices=[('SYSTEM', 'System Alert'), ('APPOINTMENT', 'Appointment Update'), ('VEHICLE', 'Vehicle Update'), ('OTHER', 'Other')], default='OTHER', max_length=20)),
                 ('read_at', models.DateTimeField(blank=True, null=True)),

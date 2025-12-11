@@ -410,9 +410,17 @@ class TaskViewSet(viewsets.ModelViewSet):
         return TaskSerializer
     
     def get_permissions(self):
-        """RBAC logic for tasks - Admin only for write operations"""
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        """
+        RBAC logic for tasks:
+        - create/destroy: Admin only
+        - update/partial_update: Admin OR employee updating their own assigned task
+        - read: Authenticated users (filtered by get_queryset)
+        """
+        if self.action in ['create', 'destroy']:
             permission_classes = [IsAuthenticated, IsAdmin]
+        elif self.action in ['update', 'partial_update']:
+            # Allow both admin and authenticated employees (validated in update method)
+            permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
@@ -441,6 +449,85 @@ class TaskViewSet(viewsets.ModelViewSet):
             return queryset.none()
         
         return queryset.none()
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Update task and sync project status if all tasks are completed.
+        Employees can only update tasks assigned to them.
+        Admins can update any task.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        user = request.user
+        
+        # Permission check: Employees can only update their own assigned tasks
+        if getattr(user, "user_role", None) == "employee":
+            employee_id = getattr(user, 'id', None)
+            if str(instance.assigned_employee_id) != str(employee_id):
+                return Response(
+                    {'error': 'You can only update tasks assigned to you'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # Save the updated task
+        updated_task = serializer.save()
+        
+        print(f"✅ Task {updated_task.task_id} updated: status={updated_task.status}, duration={updated_task.duration_seconds}s")
+        
+        # If task status changed to 'completed', check if all tasks in project are completed
+        if updated_task.status == 'completed':
+            self._update_project_status_if_needed(updated_task.project)
+        
+        return Response(serializer.data)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Handle PATCH requests"""
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+    
+    def _update_project_status_if_needed(self, project):
+        """
+        Update project status to 'completed' if all tasks are completed.
+        This ensures customer sees the correct project status.
+        """
+        try:
+            # Get all tasks for this project
+            all_tasks = Task.objects.filter(project=project)
+            
+            if not all_tasks.exists():
+                print(f"⚠️ No tasks found for project {project.project_id}")
+                return
+            
+            # Check if all tasks are completed
+            completed_tasks = all_tasks.filter(status='completed')
+            total_tasks = all_tasks.count()
+            completed_count = completed_tasks.count()
+            
+            print(f"📊 Project {project.project_id}: {completed_count}/{total_tasks} tasks completed")
+            
+            # If all tasks are completed, update project status
+            if completed_count == total_tasks:
+                old_status = project.status
+                project.status = 'completed'
+                project.save()
+                print(f"✅ Project {project.project_id} status updated: {old_status} → completed (all tasks completed)")
+            else:
+                # If not all completed but at least one is in progress, ensure project is 'in_progress'
+                in_progress_tasks = all_tasks.filter(status='in_progress')
+                if in_progress_tasks.exists() and project.status not in ['in_progress', 'completed']:
+                    old_status = project.status
+                    project.status = 'in_progress'
+                    project.save()
+                    print(f"🔄 Project {project.project_id} status updated: {old_status} → in_progress (tasks in progress)")
+                    
+        except Exception as e:
+            print(f"❌ Error updating project status: {str(e)}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            # Don't fail the task update if project status update fails
     
     @action(detail=False, methods=['get'])
     def by_project(self, request):

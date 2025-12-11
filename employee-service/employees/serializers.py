@@ -144,3 +144,48 @@ class AssignedTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = AssignedTask
         fields = "__all__"
+
+
+class AdminEmployeeCreateUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for admin to create or update employee profiles with all fields.
+    Used when admin creates an employee account and needs to set initial profile data.
+    """
+    email = serializers.EmailField(source="user.email", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+
+    class Meta:
+        model = Employee
+        fields = [
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "gender",
+            "date_of_birth",
+            "address_line1",
+            "address_line2",
+            "city",
+            "postal_code",
+            "specialization",
+            "experience_years",
+            "hourly_rate",
+            "is_available",
+        ]
+        read_only_fields = ["id"]
+
+    def validate_phone_number(self, value):
+        """Validate phone number format"""
+        if value and len(value.strip()) > 0:
+            cleaned = ''.join(filter(str.isdigit, value))
+            if len(cleaned) < 9:
+                raise serializers.ValidationError("Phone number must be at least 9 digits")
+        return value
+
+    def validate_gender(self, value):
+        """Validate gender choices"""
+        if value and value not in ['Male', 'Female', 'Other']:
+            raise serializers.ValidationError("Gender must be Male, Female, or Other")
+        return value

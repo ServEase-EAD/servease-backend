@@ -25,7 +25,7 @@ class UserListSerializer(serializers.Serializer):
 
 
 class CreateUserSerializer(serializers.Serializer):
-    """Serializer for creating a new user"""
+    """Serializer for creating a new user (with additional employee fields)"""
     email = serializers.EmailField()
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)
@@ -33,6 +33,18 @@ class CreateUserSerializer(serializers.Serializer):
     password2 = serializers.CharField(write_only=True, min_length=8)
     user_role = serializers.ChoiceField(choices=['customer', 'employee', 'admin'])
     phone_number = serializers.CharField(max_length=15, required=False, allow_blank=True)
+    
+    # Additional fields for employee profiles
+    gender = serializers.ChoiceField(choices=['Male', 'Female', 'Other'], required=False, allow_blank=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    address_line1 = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    address_line2 = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    city = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    postal_code = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    specialization = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    experience_years = serializers.IntegerField(required=False, min_value=0)
+    hourly_rate = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, min_value=0)
+    is_available = serializers.BooleanField(required=False, default=True)
 
     def validate(self, attrs):
         if attrs['password1'] != attrs['password2']:

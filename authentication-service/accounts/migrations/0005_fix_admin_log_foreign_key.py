@@ -8,6 +8,19 @@ def fix_admin_log_foreign_key(apps, schema_editor):
     Fix the django_admin_log table to use UUID foreign key
     """
     with schema_editor.connection.cursor() as cursor:
+        # Check if table exists first
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'django_admin_log'
+            )
+        """)
+        table_exists = cursor.fetchone()[0]
+        
+        if not table_exists:
+            # Table doesn't exist yet, skip this migration
+            return
+        
         # First, clear any existing admin log entries to avoid FK conflicts
         cursor.execute("DELETE FROM django_admin_log")
         
@@ -36,6 +49,18 @@ def reverse_admin_log_fix(apps, schema_editor):
     Reverse the admin log fix (convert back to bigint)
     """
     with schema_editor.connection.cursor() as cursor:
+        # Check if table exists first
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'django_admin_log'
+            )
+        """)
+        table_exists = cursor.fetchone()[0]
+        
+        if not table_exists:
+            return
+            
         # Clear admin log entries
         cursor.execute("DELETE FROM django_admin_log")
         

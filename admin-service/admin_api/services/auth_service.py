@@ -57,7 +57,7 @@ class AuthServiceClient:
             raise Exception(f"Failed to fetch user: {str(e)}")
     
     def create_user(self, token: str, user_data: Dict) -> Dict:
-        """Create a new user"""
+        """Create a new user and if employee, also create profile in employee service"""
         try:
             # Determine endpoint based on role
             if user_data.get('user_role') == 'employee':
@@ -73,7 +73,49 @@ class AuthServiceClient:
                 timeout=self.timeout
             )
             response.raise_for_status()
-            return response.json()
+            created_user = response.json()
+            
+            # If employee was created, also create/update profile in employee service
+            if user_data.get('user_role') == 'employee':
+                try:
+                    employee_service_url = getattr(settings, 'EMPLOYEE_SERVICE_URL', 'http://employee-service:8003')
+                    employee_id = created_user.get('id')
+                    
+                    # Prepare employee profile data
+                    profile_data = {
+                        'phone_number': user_data.get('phone_number', ''),
+                        'gender': user_data.get('gender', ''),
+                        'date_of_birth': user_data.get('date_of_birth'),
+                        'address_line1': user_data.get('address_line1', ''),
+                        'address_line2': user_data.get('address_line2', ''),
+                        'city': user_data.get('city', ''),
+                        'postal_code': user_data.get('postal_code', ''),
+                        'specialization': user_data.get('specialization', ''),
+                        'experience_years': user_data.get('experience_years', 0),
+                        'hourly_rate': user_data.get('hourly_rate', 0),
+                        'is_available': user_data.get('is_available', True),
+                    }
+                    
+                    # Remove None values
+                    profile_data = {k: v for k, v in profile_data.items() if v is not None}
+                    
+                    employee_profile_response = requests.post(
+                        f"{employee_service_url}/api/v1/employees/admin/{employee_id}/profile/",
+                        json=profile_data,
+                        headers=self._get_headers(token),
+                        timeout=self.timeout
+                    )
+                    
+                    if employee_profile_response.status_code in [200, 201]:
+                        logger.info(f"Successfully created employee profile for {employee_id}")
+                    else:
+                        logger.warning(f"Failed to create employee profile: {employee_profile_response.text}")
+                        
+                except Exception as e:
+                    logger.warning(f"Error creating employee profile (auth user created successfully): {str(e)}")
+                    # Don't fail the user creation if profile creation fails
+            
+            return created_user
         except requests.RequestException as e:
             logger.error(f"Error creating user: {str(e)}")
             error_detail = e.response.json() if hasattr(e, 'response') and e.response else str(e)

@@ -8,6 +8,19 @@ def fix_token_blacklist_foreign_key(apps, schema_editor):
     Fix the token_blacklist_outstandingtoken table to use UUID foreign key
     """
     with schema_editor.connection.cursor() as cursor:
+        # Check if table exists first
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'token_blacklist_outstandingtoken'
+            )
+        """)
+        table_exists = cursor.fetchone()[0]
+        
+        if not table_exists:
+            # Table doesn't exist yet, skip this migration
+            return
+        
         # Clear existing tokens to avoid FK conflicts
         cursor.execute("DELETE FROM token_blacklist_outstandingtoken")
         cursor.execute("DELETE FROM token_blacklist_blacklistedtoken")
@@ -37,6 +50,18 @@ def reverse_token_blacklist_fix(apps, schema_editor):
     Reverse the token blacklist fix
     """
     with schema_editor.connection.cursor() as cursor:
+        # Check if table exists first
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'token_blacklist_outstandingtoken'
+            )
+        """)
+        table_exists = cursor.fetchone()[0]
+        
+        if not table_exists:
+            return
+            
         # Clear tokens
         cursor.execute("DELETE FROM token_blacklist_outstandingtoken")
         cursor.execute("DELETE FROM token_blacklist_blacklistedtoken")

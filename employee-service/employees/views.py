@@ -2,9 +2,10 @@ from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import api_view, permission_classes
 from django.contrib.auth.models import User
 from .models import Employee
-from .serializers import EmployeeProfileSerializer, ChangePasswordSerializer, AssignedTaskSerializer
+from .serializers import EmployeeProfileSerializer, ChangePasswordSerializer, AssignedTaskSerializer, AdminEmployeeCreateUpdateSerializer
 from .permissions import IsEmployeeOwnerOrAdmin
 import requests
 from django.conf import settings
@@ -164,4 +165,84 @@ class AssignedTasksViewSet(viewsets.ViewSet):
             return Response(
                 {"error": "Error fetching assigned tasks", "detail": str(e)},
                 status=500
+            )
+
+
+@api_view(['POST', 'PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def admin_create_or_update_employee_profile(request, employee_id):
+    """
+    Admin endpoint to create or update employee profile with full details.
+    This should be called after creating an employee account in the authentication service.
+    
+    POST/PUT/PATCH /api/v1/employees/admin/<employee_id>/profile/
+    
+    Body: {
+        "phone_number": "1234567890",
+        "gender": "Male",
+        "date_of_birth": "1990-01-01",
+        "address_line1": "123 Main St",
+        "address_line2": "Apt 4B",
+        "city": "New York",
+        "postal_code": "10001",
+        "specialization": "Engine Repair",
+        "experience_years": 5,
+        "hourly_rate": 50.00,
+        "is_available": true
+    }
+    """
+    # Check if user is admin (has role 'admin')
+    if not hasattr(request.user, 'role') or request.user.role != 'admin':
+        return Response(
+            {"error": "Only admin users can create or update employee profiles"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        # Try to get existing employee profile
+        employee = Employee.objects.get(id=employee_id)
+        print(f"DEBUG Admin: Updating existing employee profile {employee_id}")
+        
+        serializer = AdminEmployeeCreateUpdateSerializer(employee, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            print(f"DEBUG Admin: Successfully updated employee {employee_id}")
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            print(f"DEBUG Admin: Validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Employee.DoesNotExist:
+        print(f"DEBUG Admin: Employee profile {employee_id} does not exist, creating new one")
+        
+        # Create new employee profile
+        # Need to get or create the User object first
+        try:
+            # The employee_id from authentication service should be used as the Employee id
+            # We need to fetch user details from the authentication service or create a stub user
+            # For now, we'll create a basic user record if it doesn't exist
+            
+            # Check if a User with this employee's email exists
+            # Since we don't have email here, we'll create Employee without User first
+            # The User will be created when employee first logs in via CustomJWTAuthentication
+            
+            employee = Employee.objects.create(id=employee_id)
+            print(f"DEBUG Admin: Created new employee profile {employee_id}")
+            
+            serializer = AdminEmployeeCreateUpdateSerializer(employee, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                print(f"DEBUG Admin: Successfully populated new employee {employee_id}")
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                # If validation fails, delete the created employee
+                employee.delete()
+                print(f"DEBUG Admin: Validation errors: {serializer.errors}")
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            print(f"DEBUG Admin: Error creating employee: {str(e)}")
+            return Response(
+                {"error": f"Failed to create employee profile: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

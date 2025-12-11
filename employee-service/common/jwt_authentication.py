@@ -20,6 +20,7 @@ class CustomJWTAuthentication(JWTAuthentication):
         Attempts to find and return a user using the given validated token.
         Creates a user if it doesn't exist.
         Also creates an Employee profile with the same ID as the authentication service user ID.
+        Includes phone_number from token if available.
         """
         try:
             # Extract user information from token claims
@@ -28,9 +29,10 @@ class CustomJWTAuthentication(JWTAuthentication):
             first_name = validated_token.get('first_name', '')
             last_name = validated_token.get('last_name', '')
             user_role = validated_token.get('user_role', 'employee')
+            phone_number = validated_token.get('phone_number', '')  # Extract phone_number from token
             
             # Debug logging
-            print(f"DEBUG JWT: Token claims - user_id: {user_id_from_token}, email: {email}, role: {user_role}")
+            print(f"DEBUG JWT: Token claims - user_id: {user_id_from_token}, email: {email}, role: {user_role}, phone: {phone_number}")
             
             if not email:
                 print("DEBUG JWT: Token does not contain email - INVALID")
@@ -49,10 +51,13 @@ class CustomJWTAuthentication(JWTAuthentication):
                 if user_role == 'employee':
                     employee, created = Employee.objects.get_or_create(
                         id=user_id_from_token,
-                        defaults={'user': user}
+                        defaults={
+                            'user': user,
+                            'phone_number': phone_number  # Set phone_number from token
+                        }
                     )
                     if created:
-                        print(f"DEBUG JWT: Created Employee profile with id {user_id_from_token}")
+                        print(f"DEBUG JWT: Created Employee profile with id {user_id_from_token}, phone: {phone_number}")
                     else:
                         print(f"DEBUG JWT: Found existing Employee profile with id {user_id_from_token}")
                         # Update user reference if it's different
@@ -60,6 +65,11 @@ class CustomJWTAuthentication(JWTAuthentication):
                             employee.user = user
                             employee.save()
                             print(f"DEBUG JWT: Updated Employee user reference")
+                        # Update phone number if it's empty and token has one
+                        if not employee.phone_number and phone_number:
+                            employee.phone_number = phone_number
+                            employee.save()
+                            print(f"DEBUG JWT: Updated Employee phone number to {phone_number}")
             except User.DoesNotExist:
                 print(f"DEBUG JWT: User not found, creating new user for email: {email}")
                 # Create user if doesn't exist
@@ -85,10 +95,13 @@ class CustomJWTAuthentication(JWTAuthentication):
                 if user_role == 'employee':
                     employee, created = Employee.objects.get_or_create(
                         id=user_id_from_token,
-                        defaults={'user': user}
+                        defaults={
+                            'user': user,
+                            'phone_number': phone_number  # Set phone_number from token
+                        }
                     )
                     if created:
-                        print(f"DEBUG JWT: Created Employee profile with id {user_id_from_token}")
+                        print(f"DEBUG JWT: Created Employee profile with id {user_id_from_token}, phone: {phone_number}")
                     else:
                         print(f"DEBUG JWT: Found existing Employee profile with id {user_id_from_token}")
             

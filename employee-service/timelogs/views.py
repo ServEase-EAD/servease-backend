@@ -430,14 +430,15 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         )
 
     def _sync_duration_to_source(self, log):
-        """Sync the duration back to the original task or appointment"""
+        """Sync the duration and status back to the original task or appointment"""
         import requests
         from django.conf import settings
         
         try:
             if log.task_type == 'appointment' and log.appointment_id:
-                # Update appointment duration via API
-                appointment_service_url = getattr(settings, 'APPOINTMENT_SERVICE_URL', 'http://appointment-service:8000')
+                # Update appointment duration AND status via API
+                # Use correct service URL from SERVICE_URLS dict with correct port
+                appointment_service_url = settings.SERVICE_URLS.get('APPOINTMENT_SERVICE', 'http://appointment-service:8005')
                 url = f"{appointment_service_url}/api/v1/appointments/{log.appointment_id}/"
                 
                 # Get JWT token from request if available
@@ -448,22 +449,30 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                         token = auth_header.split(' ')[1]
                 
                 headers = {'Authorization': f'Bearer {token}'} if token else {}
+                headers['Content-Type'] = 'application/json'
                 
+                print(f"🔄 Syncing to appointment: URL={url}, appointment_id={log.appointment_id}")
+                
+                # Update both duration_seconds AND status to completed
                 response = requests.patch(
                     url,
-                    json={'duration_seconds': log.duration_seconds},
+                    json={
+                        'duration_seconds': log.duration_seconds,
+                        'status': 'completed'  # Mark appointment as completed
+                    },
                     headers=headers,
-                    timeout=5
+                    timeout=10
                 )
                 
                 if response.status_code == 200:
-                    print(f"✅ Synced duration to appointment {log.appointment_id}: {log.duration_seconds}s")
+                    print(f"✅ Successfully synced to appointment {log.appointment_id}: duration={log.duration_seconds}s, status=completed")
                 else:
-                    print(f"⚠️ Failed to sync duration to appointment {log.appointment_id}: {response.status_code}")
+                    print(f"❌ Failed to sync to appointment {log.appointment_id}: status={response.status_code}, response={response.text}")
                     
             elif log.task_type == 'project' and log.project_id:
-                # Update project task duration via API
-                project_service_url = getattr(settings, 'PROJECT_SERVICE_URL', 'http://vehicleandproject-service:8000')
+                # Update project task duration AND status via API
+                # Use correct service URL from SERVICE_URLS dict with correct port
+                project_service_url = settings.SERVICE_URLS.get('VEHICLE_SERVICE', 'http://vehicleandproject-service:8004')
                 url = f"{project_service_url}/api/v1/projects/tasks/{log.project_id}/"
                 
                 # Get JWT token from request if available
@@ -474,21 +483,30 @@ class TimeLogViewSet(viewsets.ModelViewSet):
                         token = auth_header.split(' ')[1]
                 
                 headers = {'Authorization': f'Bearer {token}'} if token else {}
+                headers['Content-Type'] = 'application/json'
                 
+                print(f"🔄 Syncing to project task: URL={url}, project_id={log.project_id}")
+                
+                # Update both duration_seconds AND status to completed
                 response = requests.patch(
                     url,
-                    json={'duration_seconds': log.duration_seconds},
+                    json={
+                        'duration_seconds': log.duration_seconds,
+                        'status': 'completed'  # Mark project task as completed
+                    },
                     headers=headers,
-                    timeout=5
+                    timeout=10
                 )
                 
                 if response.status_code == 200:
-                    print(f"✅ Synced duration to project task {log.project_id}: {log.duration_seconds}s")
+                    print(f"✅ Successfully synced to project task {log.project_id}: duration={log.duration_seconds}s, status=completed")
                 else:
-                    print(f"⚠️ Failed to sync duration to project task {log.project_id}: {response.status_code}")
+                    print(f"❌ Failed to sync to project task {log.project_id}: status={response.status_code}, response={response.text}")
                     
         except Exception as e:
-            print(f"⚠️ Error syncing duration to source: {str(e)}")
+            print(f"❌ Error syncing duration and status to source: {str(e)}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
             # Don't fail the completion if sync fails
 
 

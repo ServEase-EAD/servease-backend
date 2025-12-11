@@ -66,7 +66,7 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=host.docker.internal
       - DB_NAME=${AUTH_DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -88,7 +88,7 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=host.docker.internal
       - DB_NAME=${CUSTOMER_DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -113,7 +113,7 @@ services:
     ports:
       - "8003:8003"
     environment:
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=host.docker.internal
       - DB_NAME=${EMPLOYEE_DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -138,7 +138,7 @@ services:
     ports:
       - "8004:8004"
     environment:
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=host.docker.internal
       - DB_NAME=${VEHICLE_DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -163,7 +163,7 @@ services:
     ports:
       - "8005:8005"
     environment:
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=host.docker.internal
       - DB_NAME=${APPOINTMENT_DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -194,7 +194,7 @@ services:
     ports:
       - "8006:8006"
     environment:
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=host.docker.internal
       - DB_NAME=${NOTIFICATION_DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -224,7 +224,7 @@ services:
     ports:
       - "8008:8008"
     environment:
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=host.docker.internal
       - DB_NAME=${CHATBOT_DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -250,7 +250,7 @@ services:
     ports:
       - "8007:8007"
     environment:
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=host.docker.internal
       - DB_NAME=${ADMIN_DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
